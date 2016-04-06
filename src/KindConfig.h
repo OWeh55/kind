@@ -28,7 +28,7 @@ public:
 
   bool getBool(std::string key) const;
 
-  void print() const;
+  void print(const std::string& prefix = "") const;
 private:
   void split(const std::string& line,
              std::string& key,

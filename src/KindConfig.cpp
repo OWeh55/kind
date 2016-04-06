@@ -94,11 +94,11 @@ bool KindConfig::getBool(std::string key) const
   return false;
 }
 
-void KindConfig::print() const
+void KindConfig::print(const string& prefix) const
 {
   for (auto it = settings.begin(); it != settings.end(); ++it)
     {
-      cout << it->first << ": ";
+      cout << prefix << it->first << ": ";
       if (it->second.size() > 1)
         for (string v : it->second)
           cout << v << "|";

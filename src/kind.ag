@@ -40,6 +40,7 @@
   opt: B, backuponly, void, backupOnly, Only backup/no expire, false
   opt: E, expireonly, void, expireOnly, Only expire/no backup, false
   opt: D, dryrun, Void, dryRun, Dry run (no real backup), false
+  opt: C, listconfig, void, listConfig, Show configuration, false
   opt: v, verbose, Void, verbose,  Verbose,  false
   opt: d, debug, Void, debug, Debug output of many data, false
   opt: q, quiet, Void, quiet, Be quiet - no messages, false
@@ -50,7 +51,7 @@ using namespace std;
 
 /*AppGen:Global*/
 
-vector<string> banks;
+Strings banks;
 
 typedef pair<long int, long int> Sizes;
 map<string, Sizes> sizes;
@@ -67,13 +68,22 @@ void debugPrint(const string& text)
     cout << "    " << text << endl;
 }
 
+void readMasterConfig1(const string& fn, KindConfig& conf)
+{
+  verbosePrint("reading master config " + fn);
+  conf.addFile(fn);
+}
+
 void readMasterConfig(const string& fn, KindConfig& conf)
 {
-  verbosePrint("reading global config " + fn);
-  conf.addFile(fn);
-  banks = conf.getStrings("bank");
-  if (banks.empty())
-    throw Exception("read main config", "no banks defined");
+  if (!fn.empty())  // master config given by user on commandline
+    readMasterConfig1(fn, conf);
+  else if (fileExists("/etc/kind/master.conf"))
+    readMasterConfig1("etc/kind/master.conf", conf);
+  else if (fileExists("/ffp/etc/kind/master.conf"))
+    readMasterConfig1("/ffp/etc/kind/master.conf", conf);
+  else
+    throw Exception("MasterConfig", "no file");
 }
 
 string findVault(const string& v)
@@ -93,13 +103,13 @@ string findVault(const string& v)
   return fn.getFileName();
 }
 
-void readVaultConfig(const string& vaultConfigName, KindConfig& conf)
+void readVaultConfig(const string& vault, KindConfig& conf)
 {
-  FileName fn(vaultConfigName);
-
-  verbosePrint("reading vault config " + fn.getFileName());
-
-  conf.addFile(fn.getFileName());
+  string vaultpath = findVault(vault);
+  const string& vaultConfigName = vaultpath + '/' + conf.getString("vaultConfigName");
+  verbosePrint("reading vault config:");
+  verbosePrint("  " + vaultConfigName);
+  conf.addFile(vaultConfigName);
 }
 
 string getImageName(const KindConfig& conf)
@@ -159,14 +169,10 @@ void backupVault(const string& vault,
   try
     {
       sizes[vault].second = 0; // nothing backed up yet
+
+      readVaultConfig(vault, conf);
+
       string vaultpath = findVault(vault);
-      const string& vaultConfigName = vaultpath + '/' + conf.getString("vaultConfigName");
-      readVaultConfig(vaultConfigName, conf);
-      if (debug)
-        {
-          cout << "vault config:" << endl;
-          conf.print();
-        }
 
       string imageName = getImageName(conf);
       if (!imageName.empty())
@@ -540,16 +546,9 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
   if (!quiet)
     cout << DateTime::now().getString('h') << ": Expiring images in vault " << vault << endl;
 
-  string vaultpath = findVault(vault);
-  debugPrint("searching images in " + vaultpath);
+  readVaultConfig(vault, conf);
 
-  const string& vaultConfigName = vaultpath + '/' + conf.getString("vaultConfigName");
-  readVaultConfig(vaultConfigName, conf);
-  if (debug)
-    {
-      cout << "vault config:" << endl;
-      conf.print();
-    }
+  string vaultpath = findVault(vault);
 
   Strings dirlist; // list of subdirectories
   dirList(vaultpath, dirlist);
@@ -682,22 +681,28 @@ int main(int argc, char* argv[])
       conf.add("userExcludeFile", "nobackup.list");
       conf.add("userExcludeCommand",
                "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
-
       conf.add("logSize", "");
 
-      if (!masterConfig.empty())
-        readMasterConfig(masterConfig, conf);
-      else if (fileExists("/etc/kind/master.conf"))
-        readMasterConfig("etc/kind/master.conf", conf);
-      else if (fileExists("/ffp/etc/kind/master.conf"))
-        readMasterConfig("/ffp/etc/kind/master.conf", conf);
-      else
-        throw Exception("MasterConfig", "no file");
+      if (listConfig)
+        {
+          cout << "builtin config" << endl;
+          conf.print(".   ");
+        }
 
-      if (debug)
+      readMasterConfig(masterConfig, conf);
+
+      banks = conf.getStrings("bank");
+      if (banks.empty())
+        throw Exception("read master config", "no banks defined");
+
+      if (listConfig)
         {
           cout << "global config:" << endl;
-          conf.print();
+          conf.print(".   ");
+          readVaultConfig(vault, conf);
+          cout << "vault config:" << endl;
+          conf.print(".   ");
+          exit(0);
         }
 
       lockFile = conf.getString("lockfile");
