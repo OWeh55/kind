@@ -1,8 +1,7 @@
-MAIN=kind
+# Makefile for kind, the backup tool
+# 
 
-#CXX=clang++
-
-OBJECTS=$(MAIN).o filetools.o FileName.o DateTime.o stringtools.o KindConfig.o Lexer.o rulecomp.o
+OBJECTS = kind.o filetools.o FileName.o DateTime.o stringtools.o KindConfig.o Lexer.o rulecomp.o
 
 LOPT := $(OPT)
 COPT := $(OPT) -std=c++11
@@ -14,7 +13,6 @@ COPT := $(COPT) -g -Wall  -fno-strict-aliasing
 ASTYLE := astyle
 # format options for beautifier
 ASTYLE_OPT = --style=gnu --unpad-paren --pad-header --pad-oper --indent-namespaces --indent=spaces=2 --convert-tabs --align-pointer=type --align-reference=type --remove-brackets
-#--add-brackets
 
 %.o:%.c
 	$(CC) $(COPT) $(INCLUDE) -c $*.c
@@ -32,16 +30,14 @@ ASTYLE_OPT = --style=gnu --unpad-paren --pad-header --pad-oper --indent-namespac
 %.cpp:%.ag
 	AppGen $*.ag $*.cpp
 
-$(MAIN): dep $(OBJECTS)
-	$(CXX) $(LOPT) $(LIBRARY) -o $(MAIN) $(OBJECTS) $(LIBS)
+kind: $(OBJECTS)
+	$(CXX) $(LOPT) $(LIBRARY) -o kind $(OBJECTS) $(LIBS)
 
 clean:
 	-rm -f *.o depend *~ *orig
 
-dep:	$(MAIN).cpp
-	-rm depend
-	touch depend
-	$(CXX) -M $(COPT) $(INCLUDE) *.cpp >> depend	
+dep:	kind.cpp
+	$(CXX) -M $(COPT) $(INCLUDE) *.cpp > depend	
 
 format:
 	$(ASTYLE) $(ASTYLE_OPT) *.cpp *.ag *.h
