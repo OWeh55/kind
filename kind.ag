@@ -1,0 +1,770 @@
+#include <dirent.h>
+#include <sys/stat.h>
+#include <cstring>
+#include <unistd.h>
+
+#include <iostream>
+#include <fstream>
+
+#include <string>
+#include <vector>
+#include <set>
+
+#include <algorithm>
+
+#include "stringtools.h"
+#include "Exception.h"
+
+#include "DateTime.h"
+#include "FileName.h"
+#include "KindConfig.h"
+#include "filetools.h"
+#include "Lexer.h"
+#include "rulecomp.h"
+#include "Strings.h"
+
+/*AppGen
+  %%  Beschreibung des Programmes:
+  prog: archiving backup
+  %% Beschreibung Parameter
+  % symbolischerName, Art, Typ,   Variablenname, Erklärung, Default-Wert
+  para: vault_or_group, required, string, vault, Vault to backup
+  %% Beschreibung der Optionen
+  % kurz-Option, lang-Option, Typ, Variablenname, Erklärung, Default-Wert
+
+  opt: f, full, void, fullImage, Force full image == initial backup, false
+  opt: c, masterconfig, string, masterConfig, Master config file, ""
+  opt2: if not given or empty kind looks for
+  opt2:   /etc/kind/master.conf
+  opt2:   /ffp/etc/kind/master.conf
+  opt: B, backuponly, void, backupOnly, Only backup/no expire, false
+  opt: E, expireonly, void, expireOnly, Only expire/no backup, false
+  opt: D, dryrun, Void, dryRun, Dry run (no real backup), false
+  opt: v, verbose, Void, verbose,  Verbose,  false
+  opt: d, debug, Void, debug, Debug output of many data, false
+  opt: q, quiet, Void, quiet, Be quiet - no messages, false
+  opt: h, help, usage, ignored , This help
+AppGen*/
+
+using namespace std;
+
+/*AppGen:Global*/
+
+vector<string> banks;
+
+typedef pair<long int, long int> Sizes;
+map<string, Sizes> sizes;
+
+void verbosePrint(const string& text)
+{
+  if (verbose)
+    cout << "  " << text << endl;
+}
+
+void debugPrint(const string& text)
+{
+  if (verbose)
+    cout << "    " << text << endl;
+}
+
+void readMasterConfig(const string& fn, KindConfig& conf)
+{
+  verbosePrint("reading global config " + fn);
+  conf.addFile(fn);
+  banks = conf.getStrings("bank");
+  if (banks.empty())
+    throw Exception("read main config", "no banks defined");
+}
+
+string findVault(const string& v)
+{
+  bool found = false;
+  FileName fn;
+  fn.setName(v);
+  for (unsigned int i = 0; !found && i < banks.size(); ++i)
+    {
+      fn.setPath(banks[i]);
+      if (dirExists(fn.getFileName()))
+        found = true;
+    }
+  if (!found)
+    throw Exception("find vault", v + " not found");
+  verbosePrint("using vault " + fn.getFileName());
+  return fn.getFileName();
+}
+
+void readVaultConfig(const string& vaultConfigName, KindConfig& conf)
+{
+  FileName fn(vaultConfigName);
+
+  verbosePrint("reading vault config " + fn.getFileName());
+
+  conf.addFile(fn.getFileName());
+}
+
+string getImageName(const KindConfig& conf)
+{
+  bool nonPortable = false;
+  string res = conf.getString("imageName");
+  for (unsigned int i = 0; !nonPortable && i < res.size(); ++i)
+    {
+      char c = res[i];
+      if (!isalnum(c) && c != '.' && c != '_')
+        nonPortable = true;
+    }
+  if (nonPortable)
+    throw Exception("getImageName", "Invalid character in image name " + res);
+  return res;
+}
+
+bool isValidImage(const string& imageName)
+{
+  return dirExists(imageName) &&
+         !fileExists(imageName + "/error") &&
+         dirExists(imageName + "/tree");
+}
+
+Strings findValidImages(const string& vaultpath, const KindConfig& conf)
+{
+  Strings imageList;
+  debugPrint("searching images in " + vaultpath);
+  dirList(vaultpath, imageList);
+
+  Strings validImageList;
+  for (unsigned int i = 0; i < imageList.size(); ++i)
+    {
+      FileName fn(imageList[i]);
+      string imgname = getImageName(conf);
+      int len = imgname.length();
+      if (fn.getName().substr(0, len) == imgname)
+        {
+          debugPrint("Checking " + imageList[i]);
+          if (isValidImage(imageList[i]))
+            validImageList.push_back(imageList[i]);
+        }
+    }
+  if (validImageList.empty())
+    throw Exception("Find reference", "No reference found");
+  sort(validImageList.begin(), validImageList.end());
+  return validImageList;
+}
+
+void backupVault(const string& vault,
+                 KindConfig conf /*Copy!*/ ,
+                 const DateTime& imageTime,
+                 bool fullImage)
+{
+  if (!quiet)
+    cout << DateTime::now().getString('h') << ": Backup of vault " << vault << endl;
+  try
+    {
+      sizes[vault].second = 0; // nothing backed up yet
+      string vaultpath = findVault(vault);
+      const string& vaultConfigName = vaultpath + '/' + conf.getString("vaultConfigName");
+      readVaultConfig(vaultConfigName, conf);
+      if (debug)
+        {
+          cout << "vault config:" << endl;
+          conf.print();
+        }
+
+      string imageName = getImageName(conf);
+      if (!imageName.empty())
+        imageName += '-';
+      string imageFullName =  vaultpath + "/" + imageName ;
+
+      if (conf.getBool("longImageName"))
+        imageFullName += imageTime.getString('m');
+      else
+        imageFullName += imageTime.getString('s');
+
+      verbosePrint("backup to \"" + imageFullName + "\"");
+
+      // find reference image
+      string referenceImage;
+      if (!fullImage)
+        {
+          Strings validImageList = findValidImages(vaultpath, conf);
+          // last image is newest image
+          referenceImage = validImageList.back();
+        }
+
+      // create image path
+      if (!dryRun)
+        if (mkdir(imageFullName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
+          throw Exception("Create image", "failed to create " + imageFullName);
+
+      // error message
+      // we write an generic error message to mark backup as unsuccessful
+      // will be deleted at successful end of rsync
+      string errorfile = imageFullName + "/error";
+      if (!dryRun)
+        {
+          ofstream error(errorfile);
+          error << "failed" << endl;
+          error.close();
+        }
+
+      string host;
+      if (conf.hasKey("host"))
+        host = conf.getString("host");
+
+      string server;
+      if (conf.hasKey("server"))
+        server = conf.getString("server");
+
+      if (!host.empty() && !server.empty())
+        throw Exception("backupVault", "Cannot have host and server");
+
+      string path = conf.getString("path");
+      if (path.empty())
+        throw Exception("rsync", "empty source path");
+      if (path.back() != '/')
+        path += '/';
+
+      string rsyncCmd = "rsync -vrltH --delete --stats -D --numeric-ids ";
+      if (!conf.getBool("ignorePermission"))
+        rsyncCmd += "-pgo";
+      vector<string> rso = conf.getStrings("rsyncOption");
+      for (string opt : rso)
+        rsyncCmd += opt + " ";
+
+      if (!host.empty())  // shell mode
+        {
+          // cout << "USING SHELLMODE '" << host << "'" << endl;
+          string remoteShell = conf.getString("remoteShell");
+          string userAtHost = conf.getString("user") + "@" +
+                              conf.getString("host");
+          string rshCommand = remoteShell;
+          if (remoteShell.empty())
+            rshCommand = "ssh";
+
+          rshCommand += " " + userAtHost;
+
+          // excludes
+          Strings excluded;
+
+          string userExcludeCommand = conf.getString("userExcludeCommand");
+
+          if (!userExcludeCommand.empty())
+            {
+              replacePlaceHolder(userExcludeCommand, "%path", path);
+              string excludeCommand = rshCommand + " " + userExcludeCommand;
+
+              verbosePrint("searching for exclusions (" + excludeCommand + ")");
+
+              int rc;
+              excluded = myPopen(excludeCommand, rc, debug);
+              if (rc > 0)
+                throw Exception("Find exludes", "Search for excludes failed");
+
+              for (unsigned int i = 0; i < excluded.size(); ++i)
+                {
+                  FileName fn(excluded[i]);
+                  excluded[i] = '/' + fn.getPath();
+                  debugPrint("Excluding: " + excluded[i]);
+                }
+            }
+
+          string userExcludeFile = conf.getString("userExcludeFile");
+          if (!userExcludeFile.empty())
+            {
+              userExcludeFile = path + userExcludeFile;
+              string getExcludeFileCommand = rshCommand;
+              getExcludeFileCommand += " \" if [ -f '" + userExcludeFile + "' ]; then ";
+              getExcludeFileCommand += " cat '" + userExcludeFile + "' ; fi \"";
+              // cout << getExcludeFileCommand << endl;
+              int rc;
+              Strings excludes2 = myPopen(getExcludeFileCommand, rc, debug);
+              if (rc == 0)
+                excluded += excludes2;
+            }
+
+          if (conf.hasKey("exclude"))
+            excluded += conf.getStrings("exclude");
+
+          if (!dryRun)
+            strings2File(excluded, imageFullName + "/exclude");
+
+          // rsync image
+
+          if (!remoteShell.empty())
+            rsyncCmd += " -e \'" + remoteShell + "\' ";
+
+          rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
+          if (!referenceImage.empty())
+            rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
+          rsyncCmd += userAtHost + ":" + path + " ";
+          rsyncCmd += imageFullName + "/tree";
+        } // shell mode
+      else
+        {
+          // cout << "USING SERVERMODE" << endl;
+          vector<string> excluded;
+          if (conf.hasKey("exclude"))
+            {
+              Strings excludes = conf.getStrings("exclude");
+              for (string s : excludes)
+                excluded.push_back(s);
+            }
+
+          if (!dryRun)
+            strings2File(excluded, imageFullName + "/exclude");
+
+          rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
+          if (!referenceImage.empty())
+            rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
+          rsyncCmd += conf.getString("server") + "::" + path + " ";
+          rsyncCmd += imageFullName + "/tree";
+        }
+
+      debugPrint("Action: " + rsyncCmd);
+
+      vector<string> backupResult;
+      if (!dryRun)
+        {
+          verbosePrint("syncing (" + rsyncCmd + ")");
+          int rc;
+          backupResult = myPopen(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
+          // strings2File(backupResult, imageFullName + "/rsync-log");
+          if (rc == 0 || rc == 24) // "no error" or "vanished source files" (ignored)
+            {
+              unlink(errorfile.c_str());
+              string lastLink = vaultpath + "/last";
+              unlink(lastLink.c_str());
+              symlink(imageFullName.c_str(), lastLink.c_str());
+              long int st = 0;
+              long int sc = 0;
+              for (auto bl : backupResult)
+                {
+                  if (bl.substr(0, 15) == "Total file size")
+                    st = getNumber(bl);
+                  else if (bl.substr(0, 27) == "Total transferred file size")
+                    sc = getNumber(bl);
+                }
+              // sizes[vault] = pair<long int, long int>(st, sc);
+              sizes[vault] = Sizes(st, sc);
+              //  cout << vault << " " << st << " || " << sc << endl;
+            }
+          else
+            throw Exception("Backup", "Failed to execute rsync");
+        }
+      else
+        cout << "Not executing " << rsyncCmd << endl;
+    }
+  catch (Exception ex)
+    {
+      cerr << "Exception in vault " << vault << ": " << ex.what() << endl;
+    }
+}
+
+DateTime imageDate(const string& image)
+{
+  FileName fn(image);
+  Strings ss;
+  split(fn.getName(), ss, '-');
+  if (ss.size() < 5)
+    throw Exception("imageDate", "image date not available");
+  int Y = stoi(ss[1]);
+  int M = stoi(ss[2]);
+  int D = stoi(ss[3]);
+  int h = stoi(ss[4]);
+  int m = 0, s = 0;
+  if (ss.size() > 5) // longImageName
+    m = stoi(ss[5]);
+  if (ss.size() > 6)
+    s = stoi(ss[6]);
+  return DateTime(Y, M, D, h, m, s);
+}
+
+void parseRule(string rule,
+               set<int>& M, set<int>& D, set<int>& W, set<int>& h,
+               time_t& exptime)
+{
+  for (unsigned int i = 0; i < rule.size(); ++i)
+    rule[i] = tolower(rule[i]);
+
+  substitute(rule, ' ', ',');
+  reduceToOne(rule, ',');
+
+  // rule = hour wday mday month <exptime>
+  Lexer p(rule);
+
+  h = getValues(p, 0, 23); // hour
+
+  p.expect(',');
+
+  W = getValues(p, 0, 7, 1); // wday
+
+  p.expect(',');
+
+  D = getValues(p, 1, 31); // day of month
+
+  p.expect(',');
+
+  M = getValues(p, 1, 12, 2); // month
+
+#if 0
+  // debug-output
+  cout << "hour: ";
+  for (int i : h)
+    cout << i << " ";
+  cout << endl;
+  cout << "wday: ";
+  for (int i : W)
+    cout << i << " ";
+  cout << endl;
+  cout << "mday: ";
+  for (int i : D)
+    cout << i << " ";
+  cout << endl;
+  cout << "month: ";
+  for (int i : M)
+    cout << i << " ";
+  cout << endl;
+#endif
+
+  string ts = p.getAll();
+  substitute(ts, ',', ' ');
+  exptime = stot(ts);
+}
+
+int removeDir(const string& path)
+{
+  debugPrint("removeDir " + path);
+
+  DIR* d = opendir(path.c_str());
+
+  int r = -1;
+  if (d)
+    {
+      struct dirent* p;
+
+      r = 0;
+
+      while (!r && (p = readdir(d)))
+        {
+          int r2 = 0;
+
+          string fn = p->d_name;
+
+          if (fn != "." && fn != "..")
+            {
+              fn = path + "/" + fn;
+
+              debugPrint("-- " + fn);
+
+              struct stat statbuf;
+              if (lstat(fn.c_str(), &statbuf) == 0)
+                {
+                  if (S_ISLNK(statbuf.st_mode))
+                    {
+                      debugPrint("Remove link " + fn);
+                      r2 = unlink(fn.c_str());
+                    }
+                  else if (S_ISDIR(statbuf.st_mode))
+                    {
+                      debugPrint("Remove dir " + fn);
+                      r2 = removeDir(fn);
+                    }
+                  else
+                    {
+                      debugPrint("Remove file " + fn);
+                      r2 = unlink(fn.c_str());
+                    }
+                }
+              else
+                {
+                  cout << "stat(" << fn << ") failed" << endl;
+                  // we assume "file" here
+                  r2 = unlink(fn.c_str());
+                }
+            }
+          r = r2;
+        }
+
+      closedir(d);
+    }
+
+  if (r == 0)
+    {
+      debugPrint("Remove Dir itself " + path);
+
+      r = rmdir(path.c_str());
+    }
+
+  return r;
+}
+
+#if 0
+int removeDir(const string& dname)
+{
+  int rc = 0;
+  if (!dryRun)
+    {
+      Strings files;
+      // subdirectories
+      dirList(dname, files);
+      for (unsigned int i = 0; i < files.size(); ++i)
+        {
+          debugPrint("Remove dir " + files[i]);
+          for (unsigned int i = 0; i < files.size(); ++i)
+            rc += removeDir(files[i]);
+        }
+      files.clear();
+
+      // files in directory
+      fileList(dname, files);
+      for (unsigned int i = 0; i < files.size(); ++i)
+        {
+          debugPrint("unlink " + files[i]);
+          if (!dryRun)
+            {
+              if (unlink(files[i].c_str()) != 0)
+                rc++;
+            }
+        }
+      debugPrint("rmdir " + dname);
+
+      // directory
+      if (rmdir(dname.c_str()) != 0)
+        rc++;
+    }
+
+  return rc;
+}
+#endif
+
+void expireVault(const string& vault, KindConfig conf, DateTime now)
+{
+  if (!quiet)
+    cout << DateTime::now().getString('h') << ": Expiring images in vault " << vault << endl;
+
+  string vaultpath = findVault(vault);
+  debugPrint("searching images in " + vaultpath);
+
+  const string& vaultConfigName = vaultpath + '/' + conf.getString("vaultConfigName");
+  readVaultConfig(vaultConfigName, conf);
+  if (debug)
+    {
+      cout << "vault config:" << endl;
+      conf.print();
+    }
+
+  Strings dirlist; // list of subdirectories
+  dirList(vaultpath, dirlist);
+
+  Strings validImages;
+  Strings invalidImages;
+  string imgname = getImageName(conf);
+
+  for (unsigned int i = 0; i < dirlist.size(); ++i)
+    {
+      FileName fn(dirlist[i]);
+      if (startsWith(fn.getName(), imgname)) // dir is image ?
+        {
+          debugPrint(dirlist[i]);
+
+          DateTime t = imageDate(dirlist[i]);
+
+          if (t != now) // ignore just created image
+            {
+              if (!isValidImage(dirlist[i])) // invalid image?
+                {
+                  invalidImages.push_back(dirlist[i]);
+                  debugPrint("- invalid image");
+                }
+              else
+                {
+                  validImages.push_back(dirlist[i]);
+                  debugPrint("- valid image");
+                }
+            }
+          else
+            debugPrint("- current image - ignored");
+        }
+    }
+
+  for (unsigned int i = 0; i < invalidImages.size(); ++i)
+    {
+      try
+        {
+          DateTime t = imageDate(invalidImages[i]);
+          DateTime expireTime = t + stot(conf.getString("expireFailedImage"));
+          if (debug)
+            {
+              cout << "image: " << t.getString('h') << "  expire: " << expireTime.getString('h') << endl;
+              cout << " now: " << now.getString('h') << endl;
+            }
+          if (expireTime < now)
+            {
+              if (!quiet)
+                cout << "  removing invalid image " << invalidImages[i] << endl;
+              if (removeDir(invalidImages[i]) != 0)
+                cout << "Error removing " <<  invalidImages[i] << endl;
+            }
+        }
+      catch (Exception ex)
+        {
+          cerr << "Exception: " << ex.what() << endl;
+        }
+    }
+
+  sort(validImages.begin(), validImages.end()); // lexicographical order == temporal order
+  for (unsigned int i = 0;
+       i < validImages.size() - 1; // never expire latest image
+       ++i)
+    {
+      try
+        {
+          DateTime imageTime = imageDate(validImages[i]);
+          DateTime expireTime = DateTime::now() + 100; // don't expire if  no rule found
+          Strings expireRules = conf.getStrings("expireRule");
+          int ruleNr = 0;
+          for (unsigned int k = 0; k < expireRules.size(); ++k)
+            {
+              debugPrint("Checking rule " + expireRules[k]);
+
+              set<int> M, D, W, h;
+              set<int> Y, m, s;
+              time_t expirePeriod;
+              parseRule(expireRules[k], M, D, W, h, expirePeriod);
+              //    cout << M << " " << D << " " << W << " " << h << " " << expirePeriod << endl;
+
+              if (imageTime.match(Y, M, D, W, h, m, s))
+                {
+                  debugPrint("match");
+                  expireTime = imageTime + expirePeriod;
+                  ruleNr = k;
+                }
+            }
+          if (debug)
+            {
+              cout << "image: " << imageTime.getString('h') << "  expire: " << expireTime.getString('h') << endl;
+              cout << " now: " << now.getString('h') << endl;
+            }
+          if (now > expireTime)
+            {
+              if (!quiet)
+                cout << "removing " << validImages[i] << " rule=" << expireRules[ruleNr] << endl;
+              removeDir(validImages[i]);
+            }
+        }
+      catch (Exception ex)
+        {
+          cerr << "Exception: " << ex.what() << endl;
+        }
+    }
+}
+
+/*AppGen:Main*/
+int main(int argc, char* argv[])
+{
+  /*AppGen:MainEnd*/
+
+  int exitCode = 0;
+  string lockFile;
+  try
+    {
+      if (debug)
+        verbose = true;
+
+      KindConfig conf;
+
+      // default-values
+      conf.add("imageName", "image");
+      conf.add("vaultConfigName", "kind/vault.conf");
+      conf.add("expireFailedImage", "3 days");
+      conf.add("expireRule", "* * * * 1 month");
+      conf.add("rsyncOption", ""); // no additional rsync option
+      conf.add("remoteShell", "");
+      conf.add("lockfile", "/var/lock/kind");
+      conf.add("userExcludeFile", "nobackup.list");
+      conf.add("userExcludeCommand",
+               "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
+
+      conf.add("logSize", "");
+
+      if (!masterConfig.empty())
+        readMasterConfig(masterConfig, conf);
+      else if (fileExists("/etc/kind/master.conf"))
+        readMasterConfig("etc/kind/master.conf", conf);
+      else if (fileExists("/ffp/etc/kind/master.conf"))
+        readMasterConfig("/ffp/etc/kind/master.conf", conf);
+      else
+        throw Exception("MasterConfig", "no file");
+
+      if (debug)
+        {
+          cout << "global config:" << endl;
+          conf.print();
+        }
+
+      lockFile = conf.getString("lockfile");
+      createLock(lockFile);
+
+      DateTime imageTime = DateTime::now();
+      string logSizeFile = conf.getString("logSize");
+      if (!logSizeFile.empty() && fileExists(logSizeFile))
+        {
+          vector<string> ss;
+          file2Strings(logSizeFile, ss);
+          for (auto s : ss)
+            {
+              unsigned int i = 0;
+              string v = getWord(s, i);
+              long int s1 = getLongInt(s, i);
+              long int s2 = getLongInt(s, i);
+              sizes[v] = Sizes(s1, s2);
+            }
+        }
+
+      vector<string> vaults;
+      string groupname = "group_" + vault;
+      if (conf.hasKey(groupname))
+        vaults = conf.getStrings(groupname);
+      else
+        vaults.push_back(vault);
+
+      if (!expireOnly)
+        for (unsigned int i = 0; i < vaults.size(); ++i)
+          {
+            backupVault(vaults[i], conf, imageTime, fullImage);
+            if (!logSizeFile.empty())
+              {
+                Strings st;
+                for (auto s : sizes)
+                  {
+                    string h = s.first + " " + to_string(s.second.first) + " " + to_string(s.second.second);
+                    st.push_back(h);
+                  }
+                strings2File(st, logSizeFile);
+              }
+          }
+
+      if (!backupOnly)
+        for (unsigned int i = 0; i < vaults.size(); ++i)
+          expireVault(vaults[i], conf, imageTime);
+
+      if (!quiet)
+        cout << DateTime::now().getString('h') << ": finished" << endl;
+
+    }
+  catch (const Exception& ex)
+    {
+      cerr << "Exception: " << ex.what() << endl;
+      exitCode = 1;
+    }
+  catch (const char* msg)
+    {
+      cerr << "Exception(char*): " << msg << endl;
+      exitCode = 1;
+    }
+  catch (const string& msg)
+    {
+      cerr << "Exception(string): " << msg << endl;
+      exitCode = 1;
+    }
+  removeLock(lockFile);
+  return exitCode;
+}
