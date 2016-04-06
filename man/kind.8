@@ -4,3 +4,148 @@
 .ds | \fR|\fP
 .de D
 \\.B \*d\\$1
+..
+.de DI
+\\.BI \*d\\$1 \\$2
+..
+.de DR
+\\.BR \*d\\$1 \\$2
+..
+.de Di
+\\.BI \*d\\$1 " \\$2"
+..
+.de Db
+\\.B \*d\\$1 " \\$2"
+..
+.de Df
+\\.B \*d\*ono\*c\\$1
+..
+.de See
+See \fB\\$1\fP for details.
+..
+.de SeeIn
+See \fB\\$1\fP in \fB\\$2\fP for details.
+..
+.de multiple
+Multiple \fB\*d\\$1\fP values will accumulate.
+..
+.de default
+Default value: \fB\\$1\fP
+..
+.TH KIND 8
+.SH NAME
+kind \- kind is no dirvish
+.SH SYNOPSIS
+.B kind
+[
+.I OPTIONS
+]
+.I vault
+.SH DESCRIPTION
+.P
+Create a backup image of a client directory tree.
+.P
+Each image is a directory containing transfer
+.BR rsync-log,
+.B tree
+and if errors were detected an
+.B error
+file.
+The 
+.B rsync-log
+retains the the output of rsync listing all files that were changed or added with some statistical information.
+Tree is the copy of the client tree.
+.P
+The client directory tree is compared with an existing image
+to create a new image.
+Unchanged files are shared between images.
+For changed files
+only those parts that actually change are transfered over the network.
+Unchanged portions of files are copied from the reference image.
+.P
+The resulting images contain complete copies of the original trees
+preserving ownership and file permissions.
+In this way even though the backups are made incrementally,
+each image can be used independently for restores
+or to make removable-media off-site copies or archives.
+.P
+The removal of an image will have no effect on other images.
+.P
+After backup all images of the vault are checked and expired images 
+are removed
+
+.SH OPTIONS
+.P
+Each option may be unambiguously abbreviated.
+.TP
+.Di masterconfig  config-file
+Load general options from the specified file. Default is /etc/d2/master.conf.
+Configuration values from this file may be overwritten by the vault config 
+files. The master config file must contain at least the specification of 
+the banks
+.TP
+.D full
+Create a full image without using a reference image. This is neccesary 
+for the first backup.
+.TP
+.D dryrun
+Don't actually do anything.
+
+Process all configuration files, options and tests
+then produce a summary on standard output and exit.
+.TP
+.D backuponly
+Only backup, no expire
+.TP
+.D expireonly
+Only expire, no backup
+.TP
+.D version
+Print version string and exit.
+.SH EXIT CODES
+kind returns 0 in case of no error.
+.SH FILES
+.TP
+.IB /etc/d2/ master.conf
+Default master configuration file.
+.TP
+.IB bank/vault/d2/ vault.conf
+Default vault configuration file.
+.TP
+.IB bank/vault/ last
+Symlink to last image
+.TP
+.IB bank/vault/image/ error
+Exists in case of error. May contain an error message.
+.TP
+.IB bank/vault/image/ rsync-log
+Output of rsync command.
+.TP
+.IB bank/vault/image/ tree
+actual image of source directory tree.
+
+.SH SEE ALSO
+.nf
+ssh(1)
+rsync(1)
+.SH AUTHOR
+kind was created by Wolfgang Ortmann.
+.SH BUGS AND ISSUES
+In order to preserve permissions
+it is necessary for kind to run as root
+on the backup server.
+
+For an automated backup process the root user must have 
+non-interactive ssh access to the client systems.
+It is not necessary that this access be as the root user on the client.
+
+File ownership is preserved using numeric values
+so it is not necessary to have user accounts on the backup server.
+Making the vaults network accessible
+using protocols that map UIDs based on names instead of number
+could allow access controls on files to be violated.
+
+Making the vaults writable by users will compromise the integrity 
+of the backups.
+Therefore any access to the vaults by users
+should be done through a read-only mount.

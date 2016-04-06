@@ -1,0 +1,265 @@
+.ds d \-\^\-
+.ds o \fR[\fP
+.ds c \fR]\fP
+.ds | \fR|\fP
+.ds bank \fIbank\fP
+.ds vault \fIvault\fP
+.ds branch \fIbranch\fP
+.ds image \fIimage\fP
+.de D
+\\.B \*d\\$1
+..
+.de Dr
+\\.BR \*d\\$1 \\$2
+..
+.de Bi
+\\.BR \\$1 \ =\ \\$2 " \fR\\$3"
+..
+.de Br
+\\.BR "\\$1" " \\$2"
+..
+.de DI
+\\.BI \*d\\$1 \\$2
+..
+.de Di
+\\.BI \*d\\$1 " \\$2"
+..
+.de See
+See \fB\\$1\fP for more details.
+..
+.de SeeIn
+See \fB\\$1\fP in \fB\\$2\fP for more details.
+..
+.de multiple
+Multiple \fB\\$1:\fP values will accumulate.
+..
+.de default
+Default value: \fB\\$1\fP
+..
+.TH kind.conf 5
+.SH NAME
+kind.conf \- kind configuration file format.
+.SH DESCRIPTION
+The configuration files provide all information neccesary for backup to kind.
+
+The file format is simple. Each line contains one value for one option. 
+
+.BR "option=value" 
+.br 
+Using '=' as delimiter will set the option to this value 
+and overwrite previous values.
+
+.BR "option+=value" 
+.br 
+Using '+=' as delimiter will add the specified value to the existing 
+values. If in subsequent lines values for the same option are added, 
+the key value (option) may be omited in the subsequent lines.
+.br
+\fB
+.in +.5i
+.nf
+option=value1
+.in +.5i
++=value2
++=value3
+\&.
+\&.
+\&.
++=valueN
+.br
+.fi
+.in -1i
+\fR
+.br
+Each value must be provided on its own line.
+Any leading and trailing whitespace is discarded for keys and values.
+Blank lines and lines starting with '#' are ignored.
+
+On startup disu will first load a master configuration file
+.B /etc/d2/master.conf
+
+Each vault must have an own configuration file, which must specify 
+at least the host and path to backup.
+
+.SH KIND OPTIONS
+Boolean values need to specified as
+.B true
+or
+.B false
+Specifying an boolean option with an empty value is also interpreted as true.
+
+Each option is marked here with one of (B) for Boolean, (S)
+single value, (L) list.
+
+.TP
+.Bi bank path (L) 
+Specify paths to directories containing vaults.
+
+A \*[bank] is a directory containing one or more \*[vault]s.
+The system supports multiple \*[bank]s
+so that filesystem mount-points can be managed more effectively.
+
+When a \*[vault] is specified the \*[bank]s will be searched
+in list order until the \*[vault] is found.
+This way \*[vault]s can be moved between \*[bank]s
+or added without having to update a master index.
+
+.multiple bank
+.TP
+.Bi host hostname (S)
+specify a host from which to back up.
+
+.TP
+.Bi user username (S)
+specify a user for login on host.
+
+.TP
+.Bi path path (S)
+specify the path on host from which to back up. Use absolute path
+starting with '/'.
+
+.TP
+.Bi exclude pattern (L)
+Specify filename patterns to exclude.
+
+Patterns are based on shell glob with some enhancements.
+
+.See rsync(1)
+
+.multiple exclude
+.TP
+.Bi userExcludeFile excludefilename (S)
+Load a set of patterns from a file from host:path.
+
+.TP
+.Bi expireFailedImage time period (S)
+Time an failed image is kept. Time periods can be specified as multiple
+of sec, min, hour, day, week, month and year
+
+.TP
+.Bi expireRule expire-rule (L)
+specify rules for expiration.
+
+.See "EXPIRE RULES"
+
+.multiple expire\-rule
+.TP
+.Bi imageName name_of_images (S)
+Specify a name for the \*[image]. The name must 
+not contain the '-' sign. The image name will
+be complemented by the image time like
+image\-2016-03-09-20.
+
+.TP
+.Bi longImageName true (B)
+Image time is added to the image name as YEAR-MONTH-DAY-hour.
+If longImageName is true the values for minute and second are added.
+
+.default false
+
+.TP
+.Bi ignorePermissions true (B)
+Ignore file permissions.  If this is set permissions
+will not be checked or preserved.
+
+.See rsync(1)
+
+.default false
+
+.TP
+.Bi remoteShell command (S)
+Remote shell utility.
+
+This can be used to specify the location of
+.B ssh
+or
+.B rsh
+and/or to provide additional options for said utility
+such as
+.Bi \-p port
+for
+.B ssh
+to use an alternate port number.
+
+.default ssh
+
+This remote shell command will be used not only as the
+default rsync transport but also for loading user exclude file
+and find excludes.
+
+.TP
+.Bi rsyncOption option[s] (L)
+Specify additional options for the rsync command.
+
+This allows you to use rsync features that are not directly 
+supported by kind.
+
+.multiple rsyncOption
+
+.TP
+.Bi group_??? vault (L)
+Specifies groups of vaults. If kind is called with a parameter 
+as vault name like in "kind xyz", it first looks for a vaultgroup 
+of this name. For this purpose a configuration option group_xyz is
+searched and the given list of vaults is then handled. All images
+created this way have the same image time.
+
+.SH EXPIRE RULES
+Expire rules is a list of rules used to determine an
+expiration time for an \*[image].
+
+The last rule that matches will apply so list order is significant.
+This allows rules to be set in master configuration and 
+rules in \*[vault] configuration files will override rules set in the
+master configuration file.
+
+Each rule has an pattern expression against which the image
+time is compared followed by a time period specifier.
+
+Values for the image time pattern are hour, day of week, day of month
+and month. Each of these may be a single value or a '*', where '*' 
+means "any value". 
+Time periods for expiring may be given in seconds or multiple of
+minute, hour, day, week, month(=30 days) or year(=365 days).
+
+Here are examples of a expire\-rules:
+
+.nf
+.ft CR
+.ta .5i T 6m
+	#hour	DayOfWeek DayOfMonth	Month	EXPIRE
+	*	*	1		1	5 years
+	*	sunday	*		*	1 month
+	*	*	16		*	1 year
+	10	*	*		*	1 days
+.ft R
+.fi
+
+It should be noted that (if not disabled) after backup all images
+are compared to expire rules and last match gives expire period. 
+If the expire date is reached, the image will be removed.
+
+.SH FILES
+.TP
+.B /etc/d2/master.conf
+default master configuration file.
+.TP
+.IB bank/vault/ d2/vault.conf
+default vault configuration file.
+.TP
+.IB bank/vault/image/ tree
+actual image of source directory tree.
+.TP
+.IB bank/vault/image/ rsync-log
+output from rsync
+
+.SH SEE ALSO
+.nf
+kind(8)
+ssh(1),
+rsync(1)
+.SH AUTHOR
+kind was created by Wolfgang Ortmann.
+.SH BUGS AND ISSUES
+It is important to distinguish '=' from '+='. '+' overrides 
+previously given values while '+=' adds new values to lists.
