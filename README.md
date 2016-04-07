@@ -36,8 +36,14 @@ or
 
 copy the statically linked binary (for x86-64) from directory bin to the server.
 
+To use man as help for kind:
+
+copy man/kind.8 to /usr/share/man/man8
+copy man/kind.conf.5 to /usr/share/man/man5
+
+
 *Usage
-- Create a directory uses as "bank" on a filesystem with enough space
+- Create a directory used as "bank" on a filesystem with enough space
 - Create a master config file /etc/kind/master.conf, containing at least the bank:
     bank=/disk1/kind
 - Create a subdirectory of the bank as "vault" for one backup
@@ -49,3 +55,5 @@ copy the statically linked binary (for x86-64) from directory bin to the server.
     kind -f [vault]
 - Run kind regularly (with cron):
     kind [vault]
+
+Use man kind and man kind.conf for more help
