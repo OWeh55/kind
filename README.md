@@ -27,7 +27,7 @@ Make sure, that rsync, ssh and find is installed correctly on server and clients
 clone the repository and build kind using
 - make dep
 - make 
-- 
+ 
 in the directory src. Copy kind to a directory on server (e.g. /usr/sbin)
 or
 copy the statically linked binary (for x86-64) from directory bin to the server.
