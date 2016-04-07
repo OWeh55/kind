@@ -42,10 +42,10 @@ copy the statically linked binary (for x86-64) from directory bin to the server.
     bank=/disk1/kind
 - Create a subdirectory of the bank as "vault" for one backup
 - Create a subdirectory kind in the vault directory
-- Create a vault config file /<bank>/<vault>/kind/vault.conf, containing
-    host=<client host>
-    user=<backup user>
+- Create a vault config file /[bank]/[vault]/kind/vault.conf, containing
+    host=[client host]
+    user=[backup user]
 - Run kind (on server) first time:
-    kind -f <vault>
+    kind -f [vault]
 - Run kind regularly (with cron):
-    kind <vault>
+    kind [vault]
