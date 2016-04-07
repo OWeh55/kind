@@ -717,7 +717,7 @@ void backupVault(const string& vault,
 # 355 "kind.ag"
           else
 # 356 "kind.ag"
-            throw Exception("Backup", "Failed to execute rsync");
+            throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc)+")");
 # 357 "kind.ag"
         }
 # 358 "kind.ag"

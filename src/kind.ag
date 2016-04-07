@@ -79,7 +79,7 @@ void readMasterConfig(const string& fn, KindConfig& conf)
   if (!fn.empty())  // master config given by user on commandline
     readMasterConfig1(fn, conf);
   else if (fileExists("/etc/kind/master.conf"))
-    readMasterConfig1("etc/kind/master.conf", conf);
+    readMasterConfig1("/etc/kind/master.conf", conf);
   else if (fileExists("/ffp/etc/kind/master.conf"))
     readMasterConfig1("/ffp/etc/kind/master.conf", conf);
   else
@@ -353,7 +353,7 @@ void backupVault(const string& vault,
               //  cout << vault << " " << st << " || " << sc << endl;
             }
           else
-            throw Exception("Backup", "Failed to execute rsync");
+            throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc)+")");
         }
       else
         cout << "Not executing " << rsyncCmd << endl;
