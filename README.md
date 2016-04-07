@@ -20,3 +20,4 @@ server to read the modules to backup.
 
 Windows clients can backed up using DeltaCopy as rsync server.
 
+*Installation
