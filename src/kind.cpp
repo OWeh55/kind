@@ -169,7 +169,7 @@ void readMasterConfig(const string& fn, KindConfig& conf)
 # 81 "kind.ag"
   else if (fileExists("/etc/kind/master.conf"))
 # 82 "kind.ag"
-    readMasterConfig1("etc/kind/master.conf", conf);
+    readMasterConfig1("/etc/kind/master.conf", conf);
 # 83 "kind.ag"
   else if (fileExists("/ffp/etc/kind/master.conf"))
 # 84 "kind.ag"

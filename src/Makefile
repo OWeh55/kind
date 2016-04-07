@@ -3,7 +3,8 @@
 
 OBJECTS = kind.o filetools.o FileName.o DateTime.o stringtools.o KindConfig.o Lexer.o rulecomp.o
 
-LOPT := $(OPT)
+LOPT := $(OPT) 
+#-static
 COPT := $(OPT) -std=c++11
 LIBS := 
 
@@ -32,6 +33,11 @@ ASTYLE_OPT = --style=gnu --unpad-paren --pad-header --pad-oper --indent-namespac
 
 kind: $(OBJECTS)
 	$(CXX) $(LOPT) $(LIBRARY) -o kind $(OBJECTS) $(LIBS)
+
+static: kind
+	$(CXX) $(LOPT) $(LIBRARY) -static -o kind_static $(OBJECTS) $(LIBS)
+	strip kind_static
+	cp kind_static ../bin/kind
 
 clean:
 	-rm -f *.o depend *~ *orig
