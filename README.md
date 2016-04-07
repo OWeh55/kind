@@ -24,11 +24,28 @@ Windows clients can backed up using DeltaCopy as rsync server.
 
 Make sure, that rsync, ssh and find is installed correctly on server and clients.
 
+Make sure, that the backup user can login from server to the client host[s] without password (using public key authentication)
+
 clone the repository and build kind using
 - make dep
 - make 
  
 in the directory src. Copy kind to a directory on server (e.g. /usr/sbin)
+
 or
+
 copy the statically linked binary (for x86-64) from directory bin to the server.
 
+*Usage
+- Create a directory uses as "bank" on a filesystem with enough space
+- Create a master config file /etc/kind/master.conf, containing at least the bank:
+    bank=/disk1/kind
+- Create a subdirectory of the bank as "vault" for one backup
+- Create a subdirectory kind in the vault directory
+- Create a vault config file /<bank>/<vault>/kind/vault.conf, containing
+    host=<client host>
+    user=<backup user>
+- Run kind (on server) first time:
+    kind -f <vault>
+- Run kind regularly (with cron):
+    kind <vault>
