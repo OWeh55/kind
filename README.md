@@ -1,5 +1,6 @@
 # kind
-###kind - **k**ind **i**s **n**ot **d**irvish
+
+kind - **k**ind **i**s **n**ot **d**irvish
 
 **kind** is a tool to organize backups on harddisks. 
 It is inspired and follows the same principles as **dirvish**.
@@ -43,7 +44,7 @@ copy man/kind.8 to /usr/share/man/man8
 copy man/kind.conf.5 to /usr/share/man/man5
 ```
 
-*Usage
+##Usage
 - Create a directory used as "bank" on a filesystem with enough space
 - Create a master config file /etc/kind/master.conf, containing at least the bank:
 ```
