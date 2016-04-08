@@ -1,7 +1,7 @@
 # Makefile for kind, the backup tool
 # 
 
-OBJECTS = kind.o filetools.o FileName.o DateTime.o stringtools.o KindConfig.o Lexer.o rulecomp.o
+OBJECTS = kind.o filetools.o FileName.o DateTime.o stringtools.o KindConfig.o Lexer.o rulecomp.o expiretools.o
 
 LOPT := $(OPT) 
 #-static
