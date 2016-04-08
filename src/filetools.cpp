@@ -164,8 +164,8 @@ void removeLock(const std::string& lockfilename)
 
 #define POPEN_BUFFER_SIZE 2000
 Strings myPopen(const std::string& cmd,
-                int& rc, bool debug, 
-		const std::string& logfn)
+                int& rc, bool debug,
+                const std::string& logfn)
 {
   if (debug)
     std::cout << "Executing " << cmd << std::endl;

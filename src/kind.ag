@@ -333,9 +333,9 @@ void backupVault(const string& vault,
           int rc;
           backupResult = myPopen(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
           // strings2File(backupResult, imageFullName + "/rsync-log");
-          if (rc == 0 || 
-	      rc == 24 || // "no error" or "vanished source files" (ignored)
-	      rc == 6114) // workaround for wrong exit code ??!!
+          if (rc == 0 ||
+              rc == 24 || // "no error" or "vanished source files" (ignored)
+              rc == 6114) // workaround for wrong exit code ??!!
             {
               unlink(errorfile.c_str());
               string lastLink = vaultpath + "/last";
@@ -366,13 +366,12 @@ void backupVault(const string& vault,
     }
 }
 
-DateTime imageDate(const string& image)
+DateTime stringToDate(const string& dateString)
 {
-  FileName fn(image);
   Strings ss;
-  split(fn.getName(), ss, '-');
+  split(dateString, ss, '-');
   if (ss.size() < 5)
-    throw Exception("imageDate", "image date not available");
+    throw Exception("stringToDate", "date format invalid");
   int Y = stoi(ss[1]);
   int M = stoi(ss[2]);
   int D = stoi(ss[3]);
@@ -383,6 +382,12 @@ DateTime imageDate(const string& image)
   if (ss.size() > 6)
     s = stoi(ss[6]);
   return DateTime(Y, M, D, h, m, s);
+}
+
+DateTime imageDate(const string& image)
+{
+  FileName fn(image);
+  return stringToDate(fn.getName());
 }
 
 void parseRule(string rule,
@@ -435,6 +440,62 @@ void parseRule(string rule,
   string ts = p.getAll();
   substitute(ts, ',', ' ');
   exptime = stot(ts);
+}
+
+DateTime getExpireDate(const DateTime& imageTime, const KindConfig& conf, string& rule)
+{
+  DateTime expireTime;
+  rule.clear();
+  Strings expireRules = conf.getStrings("expireRule");
+  for (unsigned int k = 0; k < expireRules.size(); ++k)
+    {
+      debugPrint("Checking rule " + expireRules[k]);
+
+      set<int> M, D, W, h;
+      set<int> Y, m, s;
+      time_t expirePeriod;
+      parseRule(expireRules[k], M, D, W, h, expirePeriod);
+
+      if (imageTime.match(Y, M, D, W, h, m, s))
+        {
+          debugPrint("match");
+          expireTime = imageTime + expirePeriod;
+          rule = expireRules[k];
+          // continue search: last rule matches
+        }
+    }
+  if (rule.empty())
+    throw Exception("expire", "no rule found");
+  return expireTime;
+}
+
+DateTime expireDate(const string& image, const KindConfig& conf, string& rule)
+{
+  string expireFileName = image + "/expires";
+  debugPrint("reading " + expireFileName);
+#if 1
+  if (fileExists(expireFileName))
+    {
+      Strings s;
+      file2Strings(expireFileName, s);
+      if (s.empty())
+        throw Exception("expireDate", "expire empty");
+      if (s.size() > 1)
+        rule = s[1];
+      return stringToDate(s[0]);
+    }
+#endif
+  // epire date from image date + rules
+  DateTime imageTime = imageDate(image);
+  DateTime expireTime = getExpireDate(imageTime, conf, rule);
+
+  // create file
+  ofstream xfile(expireFileName);
+  // we use prefix "expire-" to allow same parsing as for imagenames
+  xfile << "expire-" << expireTime.getString('m') << endl;
+  xfile << rule << endl;
+  xfile.close();
+  return expireTime;
 }
 
 int removeDir(const string& path)
@@ -618,27 +679,11 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
     {
       try
         {
-          DateTime imageTime = imageDate(validImages[i]);
-          DateTime expireTime = DateTime::now() + 100; // don't expire if  no rule found
-          Strings expireRules = conf.getStrings("expireRule");
-          int ruleNr = 0;
-          for (unsigned int k = 0; k < expireRules.size(); ++k)
-            {
-              debugPrint("Checking rule " + expireRules[k]);
+          string imageName = validImages[i];
+          DateTime imageTime = imageDate(imageName);
+          string rule;
+          DateTime expireTime = expireDate(imageName, conf, rule);
 
-              set<int> M, D, W, h;
-              set<int> Y, m, s;
-              time_t expirePeriod;
-              parseRule(expireRules[k], M, D, W, h, expirePeriod);
-              //    cout << M << " " << D << " " << W << " " << h << " " << expirePeriod << endl;
-
-              if (imageTime.match(Y, M, D, W, h, m, s))
-                {
-                  debugPrint("match");
-                  expireTime = imageTime + expirePeriod;
-                  ruleNr = k;
-                }
-            }
           if (debug)
             {
               cout << "image: " << imageTime.getString('h') << "  expire: " << expireTime.getString('h') << endl;
@@ -647,8 +692,8 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
           if (now > expireTime)
             {
               if (!quiet)
-                cout << "removing " << validImages[i] << " rule=" << expireRules[ruleNr] << endl;
-              removeDir(validImages[i]);
+                cout << "removing " << imageName << " rule=" << rule << endl;
+              removeDir(imageName);
             }
         }
       catch (Exception ex)

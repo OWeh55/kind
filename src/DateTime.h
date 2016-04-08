@@ -13,6 +13,8 @@ public:
     return DateTime(time(NULL));
   }
 
+  DateTime(): theTime(0) {}
+
   explicit DateTime(time_t t): theTime(t) {}
 
   DateTime(int Y, int M, int D, int h, int m, int s);
@@ -74,7 +76,7 @@ public:
 
   bool match(const std::set<int>& Y, const std::set<int>& M, const std::set<int>& D,
              const std::set<int>& W,
-             const std::set<int>& h, const std::set<int>& m, const std::set<int>& s);
+             const std::set<int>& h, const std::set<int>& m, const std::set<int>& s) const;
 
 private:
   static bool match(const std::set<int>& v, int v2)

@@ -49,7 +49,7 @@ struct tm
 
 bool DateTime::match(const set<int>& Y, const set<int>& M, const set<int>& D,
                      const set<int>& W,
-                     const set<int>& h, const set<int>& m, const set<int>& s)
+                     const set<int>& h, const set<int>& m, const set<int>& s) const
 {
   tm* tm = localtime(&theTime);
   return match(Y, tm->tm_year) &&
