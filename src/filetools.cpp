@@ -164,7 +164,8 @@ void removeLock(const std::string& lockfilename)
 
 #define POPEN_BUFFER_SIZE 2000
 Strings myPopen(const std::string& cmd,
-                int& rc, bool debug, const std::string& logfn)
+                int& rc, bool debug, 
+		const std::string& logfn)
 {
   if (debug)
     std::cout << "Executing " << cmd << std::endl;
@@ -181,7 +182,6 @@ Strings myPopen(const std::string& cmd,
   FILE* fd = popen(cmd.c_str(), "r");
   if (fd != nullptr)
     {
-      std::string input;
       char buffer[POPEN_BUFFER_SIZE];
       while (fgets(buffer, POPEN_BUFFER_SIZE - 1, fd))
         {
@@ -189,7 +189,7 @@ Strings myPopen(const std::string& cmd,
           int size = strlen(buffer);
           if (buffer[size - 1] == '\n') // substitute linefeed with string end
             buffer[size - 1] = 0;
-          input = buffer;
+          std::string input = buffer;
           if (log.is_open())
             log << input << std::endl;
           res.push_back(input);

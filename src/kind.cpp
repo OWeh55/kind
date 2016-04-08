@@ -677,652 +677,656 @@ void backupVault(const string& vault,
 # 335 "kind.ag"
           // strings2File(backupResult, imageFullName + "/rsync-log");
 # 336 "kind.ag"
-          if (rc == 0 || rc == 24) // "no error" or "vanished source files" (ignored)
+          if (rc == 0 || 
 # 337 "kind.ag"
-            {
+	      rc == 24 || // "no error" or "vanished source files" (ignored)
 # 338 "kind.ag"
-              unlink(errorfile.c_str());
+	      rc == 6114) // workaround for wrong exit code ??!!
 # 339 "kind.ag"
-              string lastLink = vaultpath + "/last";
+            {
 # 340 "kind.ag"
-              unlink(lastLink.c_str());
+              unlink(errorfile.c_str());
 # 341 "kind.ag"
-              symlink(imageFullName.c_str(), lastLink.c_str());
+              string lastLink = vaultpath + "/last";
 # 342 "kind.ag"
-              long int st = 0;
+              unlink(lastLink.c_str());
 # 343 "kind.ag"
-              long int sc = 0;
+              symlink(imageFullName.c_str(), lastLink.c_str());
 # 344 "kind.ag"
-              for (auto bl : backupResult)
+              long int st = 0;
 # 345 "kind.ag"
-                {
+              long int sc = 0;
 # 346 "kind.ag"
-                  if (bl.substr(0, 15) == "Total file size")
+              for (auto bl : backupResult)
 # 347 "kind.ag"
-                    st = getNumber(bl);
+                {
 # 348 "kind.ag"
-                  else if (bl.substr(0, 27) == "Total transferred file size")
+                  if (bl.substr(0, 15) == "Total file size")
 # 349 "kind.ag"
-                    sc = getNumber(bl);
+                    st = getNumber(bl);
 # 350 "kind.ag"
-                }
+                  else if (bl.substr(0, 27) == "Total transferred file size")
 # 351 "kind.ag"
-              // sizes[vault] = pair<long int, long int>(st, sc);
+                    sc = getNumber(bl);
 # 352 "kind.ag"
-              sizes[vault] = Sizes(st, sc);
+                }
 # 353 "kind.ag"
-              //  cout << vault << " " << st << " || " << sc << endl;
+              // sizes[vault] = pair<long int, long int>(st, sc);
 # 354 "kind.ag"
-            }
+              sizes[vault] = Sizes(st, sc);
 # 355 "kind.ag"
-          else
+              //  cout << vault << " " << st << " || " << sc << endl;
 # 356 "kind.ag"
-            throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc)+")");
+            }
 # 357 "kind.ag"
-        }
+          else
 # 358 "kind.ag"
-      else
+            throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc) + ")");
 # 359 "kind.ag"
-        cout << "Not executing " << rsyncCmd << endl;
+        }
 # 360 "kind.ag"
-    }
+      else
 # 361 "kind.ag"
-  catch (Exception ex)
+        cout << "Not executing " << rsyncCmd << endl;
 # 362 "kind.ag"
-    {
-# 363 "kind.ag"
-      cerr << "Exception in vault " << vault << ": " << ex.what() << endl;
-# 364 "kind.ag"
     }
+# 363 "kind.ag"
+  catch (Exception ex)
+# 364 "kind.ag"
+    {
 # 365 "kind.ag"
-}
+      cerr << "Exception in vault " << vault << ": " << ex.what() << endl;
 # 366 "kind.ag"
-
+    }
 # 367 "kind.ag"
-DateTime imageDate(const string& image)
-# 368 "kind.ag"
-{
-# 369 "kind.ag"
-  FileName fn(image);
-# 370 "kind.ag"
-  Strings ss;
-# 371 "kind.ag"
-  split(fn.getName(), ss, '-');
-# 372 "kind.ag"
-  if (ss.size() < 5)
-# 373 "kind.ag"
-    throw Exception("imageDate", "image date not available");
-# 374 "kind.ag"
-  int Y = stoi(ss[1]);
-# 375 "kind.ag"
-  int M = stoi(ss[2]);
-# 376 "kind.ag"
-  int D = stoi(ss[3]);
-# 377 "kind.ag"
-  int h = stoi(ss[4]);
-# 378 "kind.ag"
-  int m = 0, s = 0;
-# 379 "kind.ag"
-  if (ss.size() > 5) // longImageName
-# 380 "kind.ag"
-    m = stoi(ss[5]);
-# 381 "kind.ag"
-  if (ss.size() > 6)
-# 382 "kind.ag"
-    s = stoi(ss[6]);
-# 383 "kind.ag"
-  return DateTime(Y, M, D, h, m, s);
-# 384 "kind.ag"
 }
-# 385 "kind.ag"
+# 368 "kind.ag"
 
-# 386 "kind.ag"
-void parseRule(string rule,
-# 387 "kind.ag"
-               set<int>& M, set<int>& D, set<int>& W, set<int>& h,
-# 388 "kind.ag"
-               time_t& exptime)
-# 389 "kind.ag"
+# 369 "kind.ag"
+DateTime imageDate(const string& image)
+# 370 "kind.ag"
 {
+# 371 "kind.ag"
+  FileName fn(image);
+# 372 "kind.ag"
+  Strings ss;
+# 373 "kind.ag"
+  split(fn.getName(), ss, '-');
+# 374 "kind.ag"
+  if (ss.size() < 5)
+# 375 "kind.ag"
+    throw Exception("imageDate", "image date not available");
+# 376 "kind.ag"
+  int Y = stoi(ss[1]);
+# 377 "kind.ag"
+  int M = stoi(ss[2]);
+# 378 "kind.ag"
+  int D = stoi(ss[3]);
+# 379 "kind.ag"
+  int h = stoi(ss[4]);
+# 380 "kind.ag"
+  int m = 0, s = 0;
+# 381 "kind.ag"
+  if (ss.size() > 5) // longImageName
+# 382 "kind.ag"
+    m = stoi(ss[5]);
+# 383 "kind.ag"
+  if (ss.size() > 6)
+# 384 "kind.ag"
+    s = stoi(ss[6]);
+# 385 "kind.ag"
+  return DateTime(Y, M, D, h, m, s);
+# 386 "kind.ag"
+}
+# 387 "kind.ag"
+
+# 388 "kind.ag"
+void parseRule(string rule,
+# 389 "kind.ag"
+               set<int>& M, set<int>& D, set<int>& W, set<int>& h,
 # 390 "kind.ag"
-  for (unsigned int i = 0; i < rule.size(); ++i)
+               time_t& exptime)
 # 391 "kind.ag"
-    rule[i] = tolower(rule[i]);
+{
 # 392 "kind.ag"
-
+  for (unsigned int i = 0; i < rule.size(); ++i)
 # 393 "kind.ag"
-  substitute(rule, ' ', ',');
+    rule[i] = tolower(rule[i]);
 # 394 "kind.ag"
-  reduceToOne(rule, ',');
+
 # 395 "kind.ag"
-
+  substitute(rule, ' ', ',');
 # 396 "kind.ag"
-  // rule = hour wday mday month <exptime>
+  reduceToOne(rule, ',');
 # 397 "kind.ag"
-  Lexer p(rule);
-# 398 "kind.ag"
 
+# 398 "kind.ag"
+  // rule = hour wday mday month <exptime>
 # 399 "kind.ag"
-  h = getValues(p, 0, 23); // hour
+  Lexer p(rule);
 # 400 "kind.ag"
 
 # 401 "kind.ag"
-  p.expect(',');
+  h = getValues(p, 0, 23); // hour
 # 402 "kind.ag"
 
 # 403 "kind.ag"
-  W = getValues(p, 0, 7, 1); // wday
+  p.expect(',');
 # 404 "kind.ag"
 
 # 405 "kind.ag"
-  p.expect(',');
+  W = getValues(p, 0, 7, 1); // wday
 # 406 "kind.ag"
 
 # 407 "kind.ag"
-  D = getValues(p, 1, 31); // day of month
+  p.expect(',');
 # 408 "kind.ag"
 
 # 409 "kind.ag"
-  p.expect(',');
+  D = getValues(p, 1, 31); // day of month
 # 410 "kind.ag"
 
 # 411 "kind.ag"
-  M = getValues(p, 1, 12, 2); // month
+  p.expect(',');
 # 412 "kind.ag"
 
 # 413 "kind.ag"
-#if 0
+  M = getValues(p, 1, 12, 2); // month
 # 414 "kind.ag"
-  // debug-output
+
 # 415 "kind.ag"
-  cout << "hour: ";
+#if 0
 # 416 "kind.ag"
-  for (int i : h)
+  // debug-output
 # 417 "kind.ag"
-    cout << i << " ";
+  cout << "hour: ";
 # 418 "kind.ag"
-  cout << endl;
+  for (int i : h)
 # 419 "kind.ag"
-  cout << "wday: ";
+    cout << i << " ";
 # 420 "kind.ag"
-  for (int i : W)
+  cout << endl;
 # 421 "kind.ag"
-    cout << i << " ";
+  cout << "wday: ";
 # 422 "kind.ag"
-  cout << endl;
+  for (int i : W)
 # 423 "kind.ag"
-  cout << "mday: ";
+    cout << i << " ";
 # 424 "kind.ag"
-  for (int i : D)
+  cout << endl;
 # 425 "kind.ag"
-    cout << i << " ";
+  cout << "mday: ";
 # 426 "kind.ag"
-  cout << endl;
+  for (int i : D)
 # 427 "kind.ag"
-  cout << "month: ";
-# 428 "kind.ag"
-  for (int i : M)
-# 429 "kind.ag"
     cout << i << " ";
-# 430 "kind.ag"
+# 428 "kind.ag"
   cout << endl;
+# 429 "kind.ag"
+  cout << "month: ";
+# 430 "kind.ag"
+  for (int i : M)
 # 431 "kind.ag"
-#endif
+    cout << i << " ";
 # 432 "kind.ag"
-
+  cout << endl;
 # 433 "kind.ag"
-  string ts = p.getAll();
+#endif
 # 434 "kind.ag"
-  substitute(ts, ',', ' ');
+
 # 435 "kind.ag"
-  exptime = stot(ts);
+  string ts = p.getAll();
 # 436 "kind.ag"
-}
+  substitute(ts, ',', ' ');
 # 437 "kind.ag"
-
+  exptime = stot(ts);
 # 438 "kind.ag"
-int removeDir(const string& path)
+}
 # 439 "kind.ag"
-{
-# 440 "kind.ag"
-  debugPrint("removeDir " + path);
-# 441 "kind.ag"
 
+# 440 "kind.ag"
+int removeDir(const string& path)
+# 441 "kind.ag"
+{
 # 442 "kind.ag"
-  DIR* d = opendir(path.c_str());
+  debugPrint("removeDir " + path);
 # 443 "kind.ag"
 
 # 444 "kind.ag"
-  int r = -1;
+  DIR* d = opendir(path.c_str());
 # 445 "kind.ag"
-  if (d)
-# 446 "kind.ag"
-    {
-# 447 "kind.ag"
-      struct dirent* p;
-# 448 "kind.ag"
 
+# 446 "kind.ag"
+  int r = -1;
+# 447 "kind.ag"
+  if (d)
+# 448 "kind.ag"
+    {
 # 449 "kind.ag"
-      r = 0;
+      struct dirent* p;
 # 450 "kind.ag"
 
 # 451 "kind.ag"
-      while (!r && (p = readdir(d)))
+      r = 0;
 # 452 "kind.ag"
-        {
-# 453 "kind.ag"
-          int r2 = 0;
-# 454 "kind.ag"
 
+# 453 "kind.ag"
+      while (!r && (p = readdir(d)))
+# 454 "kind.ag"
+        {
 # 455 "kind.ag"
-          string fn = p->d_name;
+          int r2 = 0;
 # 456 "kind.ag"
 
 # 457 "kind.ag"
-          if (fn != "." && fn != "..")
+          string fn = p->d_name;
 # 458 "kind.ag"
-            {
-# 459 "kind.ag"
-              fn = path + "/" + fn;
-# 460 "kind.ag"
 
+# 459 "kind.ag"
+          if (fn != "." && fn != "..")
+# 460 "kind.ag"
+            {
 # 461 "kind.ag"
-              debugPrint("-- " + fn);
+              fn = path + "/" + fn;
 # 462 "kind.ag"
 
 # 463 "kind.ag"
-              struct stat statbuf;
+              debugPrint("-- " + fn);
 # 464 "kind.ag"
-              if (lstat(fn.c_str(), &statbuf) == 0)
+
 # 465 "kind.ag"
-                {
+              struct stat statbuf;
 # 466 "kind.ag"
-                  if (S_ISLNK(statbuf.st_mode))
+              if (lstat(fn.c_str(), &statbuf) == 0)
 # 467 "kind.ag"
-                    {
-# 468 "kind.ag"
-                      debugPrint("Remove link " + fn);
-# 469 "kind.ag"
-                      r2 = unlink(fn.c_str());
-# 470 "kind.ag"
-                    }
-# 471 "kind.ag"
-                  else if (S_ISDIR(statbuf.st_mode))
-# 472 "kind.ag"
-                    {
-# 473 "kind.ag"
-                      debugPrint("Remove dir " + fn);
-# 474 "kind.ag"
-                      r2 = removeDir(fn);
-# 475 "kind.ag"
-                    }
-# 476 "kind.ag"
-                  else
-# 477 "kind.ag"
-                    {
-# 478 "kind.ag"
-                      debugPrint("Remove file " + fn);
-# 479 "kind.ag"
-                      r2 = unlink(fn.c_str());
-# 480 "kind.ag"
-                    }
-# 481 "kind.ag"
-                }
-# 482 "kind.ag"
-              else
-# 483 "kind.ag"
                 {
-# 484 "kind.ag"
-                  cout << "stat(" << fn << ") failed" << endl;
-# 485 "kind.ag"
-                  // we assume "file" here
-# 486 "kind.ag"
-                  r2 = unlink(fn.c_str());
-# 487 "kind.ag"
+# 468 "kind.ag"
+                  if (S_ISLNK(statbuf.st_mode))
+# 469 "kind.ag"
+                    {
+# 470 "kind.ag"
+                      debugPrint("Remove link " + fn);
+# 471 "kind.ag"
+                      r2 = unlink(fn.c_str());
+# 472 "kind.ag"
+                    }
+# 473 "kind.ag"
+                  else if (S_ISDIR(statbuf.st_mode))
+# 474 "kind.ag"
+                    {
+# 475 "kind.ag"
+                      debugPrint("Remove dir " + fn);
+# 476 "kind.ag"
+                      r2 = removeDir(fn);
+# 477 "kind.ag"
+                    }
+# 478 "kind.ag"
+                  else
+# 479 "kind.ag"
+                    {
+# 480 "kind.ag"
+                      debugPrint("Remove file " + fn);
+# 481 "kind.ag"
+                      r2 = unlink(fn.c_str());
+# 482 "kind.ag"
+                    }
+# 483 "kind.ag"
                 }
+# 484 "kind.ag"
+              else
+# 485 "kind.ag"
+                {
+# 486 "kind.ag"
+                  cout << "stat(" << fn << ") failed" << endl;
+# 487 "kind.ag"
+                  // we assume "file" here
 # 488 "kind.ag"
-            }
+                  r2 = unlink(fn.c_str());
 # 489 "kind.ag"
-          r = r2;
+                }
 # 490 "kind.ag"
-        }
-# 491 "kind.ag"
-
-# 492 "kind.ag"
-      closedir(d);
-# 493 "kind.ag"
-    }
-# 494 "kind.ag"
-
-# 495 "kind.ag"
-  if (r == 0)
-# 496 "kind.ag"
-    {
-# 497 "kind.ag"
-      debugPrint("Remove Dir itself " + path);
-# 498 "kind.ag"
-
-# 499 "kind.ag"
-      r = rmdir(path.c_str());
-# 500 "kind.ag"
-    }
-# 501 "kind.ag"
-
-# 502 "kind.ag"
-  return r;
-# 503 "kind.ag"
-}
-# 504 "kind.ag"
-
-# 505 "kind.ag"
-#if 0
-# 506 "kind.ag"
-int removeDir(const string& dname)
-# 507 "kind.ag"
-{
-# 508 "kind.ag"
-  int rc = 0;
-# 509 "kind.ag"
-  if (!dryRun)
-# 510 "kind.ag"
-    {
-# 511 "kind.ag"
-      Strings files;
-# 512 "kind.ag"
-      // subdirectories
-# 513 "kind.ag"
-      dirList(dname, files);
-# 514 "kind.ag"
-      for (unsigned int i = 0; i < files.size(); ++i)
-# 515 "kind.ag"
-        {
-# 516 "kind.ag"
-          debugPrint("Remove dir " + files[i]);
-# 517 "kind.ag"
-          for (unsigned int i = 0; i < files.size(); ++i)
-# 518 "kind.ag"
-            rc += removeDir(files[i]);
-# 519 "kind.ag"
-        }
-# 520 "kind.ag"
-      files.clear();
-# 521 "kind.ag"
-
-# 522 "kind.ag"
-      // files in directory
-# 523 "kind.ag"
-      fileList(dname, files);
-# 524 "kind.ag"
-      for (unsigned int i = 0; i < files.size(); ++i)
-# 525 "kind.ag"
-        {
-# 526 "kind.ag"
-          debugPrint("unlink " + files[i]);
-# 527 "kind.ag"
-          if (!dryRun)
-# 528 "kind.ag"
-            {
-# 529 "kind.ag"
-              if (unlink(files[i].c_str()) != 0)
-# 530 "kind.ag"
-                rc++;
-# 531 "kind.ag"
             }
-# 532 "kind.ag"
+# 491 "kind.ag"
+          r = r2;
+# 492 "kind.ag"
         }
-# 533 "kind.ag"
-      debugPrint("rmdir " + dname);
-# 534 "kind.ag"
+# 493 "kind.ag"
 
-# 535 "kind.ag"
-      // directory
-# 536 "kind.ag"
-      if (rmdir(dname.c_str()) != 0)
-# 537 "kind.ag"
-        rc++;
-# 538 "kind.ag"
+# 494 "kind.ag"
+      closedir(d);
+# 495 "kind.ag"
     }
-# 539 "kind.ag"
+# 496 "kind.ag"
 
-# 540 "kind.ag"
-  return rc;
-# 541 "kind.ag"
+# 497 "kind.ag"
+  if (r == 0)
+# 498 "kind.ag"
+    {
+# 499 "kind.ag"
+      debugPrint("Remove Dir itself " + path);
+# 500 "kind.ag"
+
+# 501 "kind.ag"
+      r = rmdir(path.c_str());
+# 502 "kind.ag"
+    }
+# 503 "kind.ag"
+
+# 504 "kind.ag"
+  return r;
+# 505 "kind.ag"
 }
-# 542 "kind.ag"
-#endif
-# 543 "kind.ag"
+# 506 "kind.ag"
 
-# 544 "kind.ag"
-void expireVault(const string& vault, KindConfig conf, DateTime now)
-# 545 "kind.ag"
+# 507 "kind.ag"
+#if 0
+# 508 "kind.ag"
+int removeDir(const string& dname)
+# 509 "kind.ag"
 {
-# 546 "kind.ag"
-  if (!quiet)
-# 547 "kind.ag"
-    cout << DateTime::now().getString('h') << ": Expiring images in vault " << vault << endl;
-# 548 "kind.ag"
+# 510 "kind.ag"
+  int rc = 0;
+# 511 "kind.ag"
+  if (!dryRun)
+# 512 "kind.ag"
+    {
+# 513 "kind.ag"
+      Strings files;
+# 514 "kind.ag"
+      // subdirectories
+# 515 "kind.ag"
+      dirList(dname, files);
+# 516 "kind.ag"
+      for (unsigned int i = 0; i < files.size(); ++i)
+# 517 "kind.ag"
+        {
+# 518 "kind.ag"
+          debugPrint("Remove dir " + files[i]);
+# 519 "kind.ag"
+          for (unsigned int i = 0; i < files.size(); ++i)
+# 520 "kind.ag"
+            rc += removeDir(files[i]);
+# 521 "kind.ag"
+        }
+# 522 "kind.ag"
+      files.clear();
+# 523 "kind.ag"
 
+# 524 "kind.ag"
+      // files in directory
+# 525 "kind.ag"
+      fileList(dname, files);
+# 526 "kind.ag"
+      for (unsigned int i = 0; i < files.size(); ++i)
+# 527 "kind.ag"
+        {
+# 528 "kind.ag"
+          debugPrint("unlink " + files[i]);
+# 529 "kind.ag"
+          if (!dryRun)
+# 530 "kind.ag"
+            {
+# 531 "kind.ag"
+              if (unlink(files[i].c_str()) != 0)
+# 532 "kind.ag"
+                rc++;
+# 533 "kind.ag"
+            }
+# 534 "kind.ag"
+        }
+# 535 "kind.ag"
+      debugPrint("rmdir " + dname);
+# 536 "kind.ag"
+
+# 537 "kind.ag"
+      // directory
+# 538 "kind.ag"
+      if (rmdir(dname.c_str()) != 0)
+# 539 "kind.ag"
+        rc++;
+# 540 "kind.ag"
+    }
+# 541 "kind.ag"
+
+# 542 "kind.ag"
+  return rc;
+# 543 "kind.ag"
+}
+# 544 "kind.ag"
+#endif
+# 545 "kind.ag"
+
+# 546 "kind.ag"
+void expireVault(const string& vault, KindConfig conf, DateTime now)
+# 547 "kind.ag"
+{
+# 548 "kind.ag"
+  if (!quiet)
 # 549 "kind.ag"
-  readVaultConfig(vault, conf);
+    cout << DateTime::now().getString('h') << ": Expiring images in vault " << vault << endl;
 # 550 "kind.ag"
 
 # 551 "kind.ag"
-  string vaultpath = findVault(vault);
+  readVaultConfig(vault, conf);
 # 552 "kind.ag"
 
 # 553 "kind.ag"
-  Strings dirlist; // list of subdirectories
+  string vaultpath = findVault(vault);
 # 554 "kind.ag"
-  dirList(vaultpath, dirlist);
+
 # 555 "kind.ag"
-
+  Strings dirlist; // list of subdirectories
 # 556 "kind.ag"
-  Strings validImages;
+  dirList(vaultpath, dirlist);
 # 557 "kind.ag"
-  Strings invalidImages;
+
 # 558 "kind.ag"
-  string imgname = getImageName(conf);
+  Strings validImages;
 # 559 "kind.ag"
-
+  Strings invalidImages;
 # 560 "kind.ag"
-  for (unsigned int i = 0; i < dirlist.size(); ++i)
+  string imgname = getImageName(conf);
 # 561 "kind.ag"
-    {
-# 562 "kind.ag"
-      FileName fn(dirlist[i]);
-# 563 "kind.ag"
-      if (startsWith(fn.getName(), imgname)) // dir is image ?
-# 564 "kind.ag"
-        {
-# 565 "kind.ag"
-          debugPrint(dirlist[i]);
-# 566 "kind.ag"
 
+# 562 "kind.ag"
+  for (unsigned int i = 0; i < dirlist.size(); ++i)
+# 563 "kind.ag"
+    {
+# 564 "kind.ag"
+      FileName fn(dirlist[i]);
+# 565 "kind.ag"
+      if (startsWith(fn.getName(), imgname)) // dir is image ?
+# 566 "kind.ag"
+        {
 # 567 "kind.ag"
-          DateTime t = imageDate(dirlist[i]);
+          debugPrint(dirlist[i]);
 # 568 "kind.ag"
 
 # 569 "kind.ag"
-          if (t != now) // ignore just created image
+          DateTime t = imageDate(dirlist[i]);
 # 570 "kind.ag"
-            {
+
 # 571 "kind.ag"
-              if (!isValidImage(dirlist[i])) // invalid image?
+          if (t != now) // ignore just created image
 # 572 "kind.ag"
-                {
+            {
 # 573 "kind.ag"
-                  invalidImages.push_back(dirlist[i]);
+              if (!isValidImage(dirlist[i])) // invalid image?
 # 574 "kind.ag"
-                  debugPrint("- invalid image");
+                {
 # 575 "kind.ag"
-                }
+                  invalidImages.push_back(dirlist[i]);
 # 576 "kind.ag"
-              else
+                  debugPrint("- invalid image");
 # 577 "kind.ag"
-                {
+                }
 # 578 "kind.ag"
-                  validImages.push_back(dirlist[i]);
+              else
 # 579 "kind.ag"
-                  debugPrint("- valid image");
-# 580 "kind.ag"
-                }
-# 581 "kind.ag"
-            }
-# 582 "kind.ag"
-          else
-# 583 "kind.ag"
-            debugPrint("- current image - ignored");
-# 584 "kind.ag"
-        }
-# 585 "kind.ag"
-    }
-# 586 "kind.ag"
-
-# 587 "kind.ag"
-  for (unsigned int i = 0; i < invalidImages.size(); ++i)
-# 588 "kind.ag"
-    {
-# 589 "kind.ag"
-      try
-# 590 "kind.ag"
-        {
-# 591 "kind.ag"
-          DateTime t = imageDate(invalidImages[i]);
-# 592 "kind.ag"
-          DateTime expireTime = t + stot(conf.getString("expireFailedImage"));
-# 593 "kind.ag"
-          if (debug)
-# 594 "kind.ag"
-            {
-# 595 "kind.ag"
-              cout << "image: " << t.getString('h') << "  expire: " << expireTime.getString('h') << endl;
-# 596 "kind.ag"
-              cout << " now: " << now.getString('h') << endl;
-# 597 "kind.ag"
-            }
-# 598 "kind.ag"
-          if (expireTime < now)
-# 599 "kind.ag"
-            {
-# 600 "kind.ag"
-              if (!quiet)
-# 601 "kind.ag"
-                cout << "  removing invalid image " << invalidImages[i] << endl;
-# 602 "kind.ag"
-              if (removeDir(invalidImages[i]) != 0)
-# 603 "kind.ag"
-                cout << "Error removing " <<  invalidImages[i] << endl;
-# 604 "kind.ag"
-            }
-# 605 "kind.ag"
-        }
-# 606 "kind.ag"
-      catch (Exception ex)
-# 607 "kind.ag"
-        {
-# 608 "kind.ag"
-          cerr << "Exception: " << ex.what() << endl;
-# 609 "kind.ag"
-        }
-# 610 "kind.ag"
-    }
-# 611 "kind.ag"
-
-# 612 "kind.ag"
-  sort(validImages.begin(), validImages.end()); // lexicographical order == temporal order
-# 613 "kind.ag"
-  for (unsigned int i = 0;
-# 614 "kind.ag"
-       i < validImages.size() - 1; // never expire latest image
-# 615 "kind.ag"
-       ++i)
-# 616 "kind.ag"
-    {
-# 617 "kind.ag"
-      try
-# 618 "kind.ag"
-        {
-# 619 "kind.ag"
-          DateTime imageTime = imageDate(validImages[i]);
-# 620 "kind.ag"
-          DateTime expireTime = DateTime::now() + 100; // don't expire if  no rule found
-# 621 "kind.ag"
-          Strings expireRules = conf.getStrings("expireRule");
-# 622 "kind.ag"
-          int ruleNr = 0;
-# 623 "kind.ag"
-          for (unsigned int k = 0; k < expireRules.size(); ++k)
-# 624 "kind.ag"
-            {
-# 625 "kind.ag"
-              debugPrint("Checking rule " + expireRules[k]);
-# 626 "kind.ag"
-
-# 627 "kind.ag"
-              set<int> M, D, W, h;
-# 628 "kind.ag"
-              set<int> Y, m, s;
-# 629 "kind.ag"
-              time_t expirePeriod;
-# 630 "kind.ag"
-              parseRule(expireRules[k], M, D, W, h, expirePeriod);
-# 631 "kind.ag"
-              //    cout << M << " " << D << " " << W << " " << h << " " << expirePeriod << endl;
-# 632 "kind.ag"
-
-# 633 "kind.ag"
-              if (imageTime.match(Y, M, D, W, h, m, s))
-# 634 "kind.ag"
                 {
-# 635 "kind.ag"
-                  debugPrint("match");
-# 636 "kind.ag"
-                  expireTime = imageTime + expirePeriod;
-# 637 "kind.ag"
-                  ruleNr = k;
-# 638 "kind.ag"
+# 580 "kind.ag"
+                  validImages.push_back(dirlist[i]);
+# 581 "kind.ag"
+                  debugPrint("- valid image");
+# 582 "kind.ag"
                 }
-# 639 "kind.ag"
+# 583 "kind.ag"
             }
-# 640 "kind.ag"
-          if (debug)
-# 641 "kind.ag"
-            {
-# 642 "kind.ag"
-              cout << "image: " << imageTime.getString('h') << "  expire: " << expireTime.getString('h') << endl;
-# 643 "kind.ag"
-              cout << " now: " << now.getString('h') << endl;
-# 644 "kind.ag"
-            }
-# 645 "kind.ag"
-          if (now > expireTime)
-# 646 "kind.ag"
-            {
-# 647 "kind.ag"
-              if (!quiet)
-# 648 "kind.ag"
-                cout << "removing " << validImages[i] << " rule=" << expireRules[ruleNr] << endl;
-# 649 "kind.ag"
-              removeDir(validImages[i]);
-# 650 "kind.ag"
-            }
-# 651 "kind.ag"
+# 584 "kind.ag"
+          else
+# 585 "kind.ag"
+            debugPrint("- current image - ignored");
+# 586 "kind.ag"
         }
-# 652 "kind.ag"
-      catch (Exception ex)
-# 653 "kind.ag"
-        {
-# 654 "kind.ag"
-          cerr << "Exception: " << ex.what() << endl;
-# 655 "kind.ag"
-        }
-# 656 "kind.ag"
+# 587 "kind.ag"
     }
-# 657 "kind.ag"
-}
-# 658 "kind.ag"
+# 588 "kind.ag"
 
+# 589 "kind.ag"
+  for (unsigned int i = 0; i < invalidImages.size(); ++i)
+# 590 "kind.ag"
+    {
+# 591 "kind.ag"
+      try
+# 592 "kind.ag"
+        {
+# 593 "kind.ag"
+          DateTime t = imageDate(invalidImages[i]);
+# 594 "kind.ag"
+          DateTime expireTime = t + stot(conf.getString("expireFailedImage"));
+# 595 "kind.ag"
+          if (debug)
+# 596 "kind.ag"
+            {
+# 597 "kind.ag"
+              cout << "image: " << t.getString('h') << "  expire: " << expireTime.getString('h') << endl;
+# 598 "kind.ag"
+              cout << " now: " << now.getString('h') << endl;
+# 599 "kind.ag"
+            }
+# 600 "kind.ag"
+          if (expireTime < now)
+# 601 "kind.ag"
+            {
+# 602 "kind.ag"
+              if (!quiet)
+# 603 "kind.ag"
+                cout << "  removing invalid image " << invalidImages[i] << endl;
+# 604 "kind.ag"
+              if (removeDir(invalidImages[i]) != 0)
+# 605 "kind.ag"
+                cout << "Error removing " <<  invalidImages[i] << endl;
+# 606 "kind.ag"
+            }
+# 607 "kind.ag"
+        }
+# 608 "kind.ag"
+      catch (Exception ex)
+# 609 "kind.ag"
+        {
+# 610 "kind.ag"
+          cerr << "Exception: " << ex.what() << endl;
+# 611 "kind.ag"
+        }
+# 612 "kind.ag"
+    }
+# 613 "kind.ag"
+
+# 614 "kind.ag"
+  sort(validImages.begin(), validImages.end()); // lexicographical order == temporal order
+# 615 "kind.ag"
+  for (unsigned int i = 0;
+# 616 "kind.ag"
+       i < validImages.size() - 1; // never expire latest image
+# 617 "kind.ag"
+       ++i)
+# 618 "kind.ag"
+    {
+# 619 "kind.ag"
+      try
+# 620 "kind.ag"
+        {
+# 621 "kind.ag"
+          DateTime imageTime = imageDate(validImages[i]);
+# 622 "kind.ag"
+          DateTime expireTime = DateTime::now() + 100; // don't expire if  no rule found
+# 623 "kind.ag"
+          Strings expireRules = conf.getStrings("expireRule");
+# 624 "kind.ag"
+          int ruleNr = 0;
+# 625 "kind.ag"
+          for (unsigned int k = 0; k < expireRules.size(); ++k)
+# 626 "kind.ag"
+            {
+# 627 "kind.ag"
+              debugPrint("Checking rule " + expireRules[k]);
+# 628 "kind.ag"
+
+# 629 "kind.ag"
+              set<int> M, D, W, h;
+# 630 "kind.ag"
+              set<int> Y, m, s;
+# 631 "kind.ag"
+              time_t expirePeriod;
+# 632 "kind.ag"
+              parseRule(expireRules[k], M, D, W, h, expirePeriod);
+# 633 "kind.ag"
+              //    cout << M << " " << D << " " << W << " " << h << " " << expirePeriod << endl;
+# 634 "kind.ag"
+
+# 635 "kind.ag"
+              if (imageTime.match(Y, M, D, W, h, m, s))
+# 636 "kind.ag"
+                {
+# 637 "kind.ag"
+                  debugPrint("match");
+# 638 "kind.ag"
+                  expireTime = imageTime + expirePeriod;
+# 639 "kind.ag"
+                  ruleNr = k;
+# 640 "kind.ag"
+                }
+# 641 "kind.ag"
+            }
+# 642 "kind.ag"
+          if (debug)
+# 643 "kind.ag"
+            {
+# 644 "kind.ag"
+              cout << "image: " << imageTime.getString('h') << "  expire: " << expireTime.getString('h') << endl;
+# 645 "kind.ag"
+              cout << " now: " << now.getString('h') << endl;
+# 646 "kind.ag"
+            }
+# 647 "kind.ag"
+          if (now > expireTime)
+# 648 "kind.ag"
+            {
+# 649 "kind.ag"
+              if (!quiet)
+# 650 "kind.ag"
+                cout << "removing " << validImages[i] << " rule=" << expireRules[ruleNr] << endl;
+# 651 "kind.ag"
+              removeDir(validImages[i]);
+# 652 "kind.ag"
+            }
+# 653 "kind.ag"
+        }
+# 654 "kind.ag"
+      catch (Exception ex)
+# 655 "kind.ag"
+        {
+# 656 "kind.ag"
+          cerr << "Exception: " << ex.what() << endl;
+# 657 "kind.ag"
+        }
+# 658 "kind.ag"
+    }
 # 659 "kind.ag"
+}
+# 660 "kind.ag"
+
+# 661 "kind.ag"
 /*AppGen:Main*/
 string ag_programName;
 
@@ -1462,229 +1466,229 @@ string vault = "";
   else error("Parameter vault_or_group needed");
 
 /*AppGen:MainEnd*/
-# 663 "kind.ag"
-
-# 664 "kind.ag"
-  int exitCode = 0;
 # 665 "kind.ag"
-  string lockFile;
-# 666 "kind.ag"
-  try
-# 667 "kind.ag"
-    {
-# 668 "kind.ag"
-      if (debug)
-# 669 "kind.ag"
-        verbose = true;
-# 670 "kind.ag"
 
+# 666 "kind.ag"
+  int exitCode = 0;
+# 667 "kind.ag"
+  string lockFile;
+# 668 "kind.ag"
+  try
+# 669 "kind.ag"
+    {
+# 670 "kind.ag"
+      if (debug)
 # 671 "kind.ag"
-      KindConfig conf;
+        verbose = true;
 # 672 "kind.ag"
 
 # 673 "kind.ag"
-      // default-values
+      KindConfig conf;
 # 674 "kind.ag"
-      conf.add("imageName", "image");
+
 # 675 "kind.ag"
-      conf.add("vaultConfigName", "kind/vault.conf");
+      // default-values
 # 676 "kind.ag"
-      conf.add("expireFailedImage", "3 days");
+      conf.add("imageName", "image");
 # 677 "kind.ag"
-      conf.add("expireRule", "* * * * 1 month");
+      conf.add("vaultConfigName", "kind/vault.conf");
 # 678 "kind.ag"
-      conf.add("rsyncOption", ""); // no additional rsync option
+      conf.add("expireFailedImage", "3 days");
 # 679 "kind.ag"
-      conf.add("remoteShell", "");
+      conf.add("expireRule", "* * * * 1 month");
 # 680 "kind.ag"
-      conf.add("lockfile", "/var/lock/kind");
+      conf.add("rsyncOption", ""); // no additional rsync option
 # 681 "kind.ag"
-      conf.add("userExcludeFile", "nobackup.list");
+      conf.add("remoteShell", "");
 # 682 "kind.ag"
-      conf.add("userExcludeCommand",
+      conf.add("lockfile", "/var/lock/kind");
 # 683 "kind.ag"
-               "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
+      conf.add("userExcludeFile", "nobackup.list");
 # 684 "kind.ag"
-      conf.add("logSize", "");
+      conf.add("userExcludeCommand",
 # 685 "kind.ag"
-
+               "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
 # 686 "kind.ag"
-      if (listConfig)
+      conf.add("logSize", "");
 # 687 "kind.ag"
-        {
-# 688 "kind.ag"
-          cout << "builtin config" << endl;
-# 689 "kind.ag"
-          conf.print(".   ");
-# 690 "kind.ag"
-        }
-# 691 "kind.ag"
 
+# 688 "kind.ag"
+      if (listConfig)
+# 689 "kind.ag"
+        {
+# 690 "kind.ag"
+          cout << "builtin config" << endl;
+# 691 "kind.ag"
+          conf.print(".   ");
 # 692 "kind.ag"
-      readMasterConfig(masterConfig, conf);
+        }
 # 693 "kind.ag"
 
 # 694 "kind.ag"
-      banks = conf.getStrings("bank");
+      readMasterConfig(masterConfig, conf);
 # 695 "kind.ag"
-      if (banks.empty())
+
 # 696 "kind.ag"
-        throw Exception("read master config", "no banks defined");
+      banks = conf.getStrings("bank");
 # 697 "kind.ag"
-
+      if (banks.empty())
 # 698 "kind.ag"
-      if (listConfig)
+        throw Exception("read master config", "no banks defined");
 # 699 "kind.ag"
-        {
+
 # 700 "kind.ag"
-          cout << "global config:" << endl;
+      if (listConfig)
 # 701 "kind.ag"
-          conf.print(".   ");
-# 702 "kind.ag"
-          readVaultConfig(vault, conf);
-# 703 "kind.ag"
-          cout << "vault config:" << endl;
-# 704 "kind.ag"
-          conf.print(".   ");
-# 705 "kind.ag"
-          exit(0);
-# 706 "kind.ag"
-        }
-# 707 "kind.ag"
-
-# 708 "kind.ag"
-      lockFile = conf.getString("lockfile");
-# 709 "kind.ag"
-      createLock(lockFile);
-# 710 "kind.ag"
-
-# 711 "kind.ag"
-      DateTime imageTime = DateTime::now();
-# 712 "kind.ag"
-      string logSizeFile = conf.getString("logSize");
-# 713 "kind.ag"
-      if (!logSizeFile.empty() && fileExists(logSizeFile))
-# 714 "kind.ag"
         {
-# 715 "kind.ag"
-          vector<string> ss;
-# 716 "kind.ag"
-          file2Strings(logSizeFile, ss);
-# 717 "kind.ag"
-          for (auto s : ss)
-# 718 "kind.ag"
-            {
-# 719 "kind.ag"
-              unsigned int i = 0;
-# 720 "kind.ag"
-              string v = getWord(s, i);
-# 721 "kind.ag"
-              long int s1 = getLongInt(s, i);
-# 722 "kind.ag"
-              long int s2 = getLongInt(s, i);
-# 723 "kind.ag"
-              sizes[v] = Sizes(s1, s2);
-# 724 "kind.ag"
-            }
-# 725 "kind.ag"
+# 702 "kind.ag"
+          cout << "global config:" << endl;
+# 703 "kind.ag"
+          conf.print(".   ");
+# 704 "kind.ag"
+          readVaultConfig(vault, conf);
+# 705 "kind.ag"
+          cout << "vault config:" << endl;
+# 706 "kind.ag"
+          conf.print(".   ");
+# 707 "kind.ag"
+          exit(0);
+# 708 "kind.ag"
         }
+# 709 "kind.ag"
+
+# 710 "kind.ag"
+      lockFile = conf.getString("lockfile");
+# 711 "kind.ag"
+      createLock(lockFile);
+# 712 "kind.ag"
+
+# 713 "kind.ag"
+      DateTime imageTime = DateTime::now();
+# 714 "kind.ag"
+      string logSizeFile = conf.getString("logSize");
+# 715 "kind.ag"
+      if (!logSizeFile.empty() && fileExists(logSizeFile))
+# 716 "kind.ag"
+        {
+# 717 "kind.ag"
+          vector<string> ss;
+# 718 "kind.ag"
+          file2Strings(logSizeFile, ss);
+# 719 "kind.ag"
+          for (auto s : ss)
+# 720 "kind.ag"
+            {
+# 721 "kind.ag"
+              unsigned int i = 0;
+# 722 "kind.ag"
+              string v = getWord(s, i);
+# 723 "kind.ag"
+              long int s1 = getLongInt(s, i);
+# 724 "kind.ag"
+              long int s2 = getLongInt(s, i);
+# 725 "kind.ag"
+              sizes[v] = Sizes(s1, s2);
 # 726 "kind.ag"
-
+            }
 # 727 "kind.ag"
-      vector<string> vaults;
+        }
 # 728 "kind.ag"
-      string groupname = "group_" + vault;
+
 # 729 "kind.ag"
-      if (conf.hasKey(groupname))
+      vector<string> vaults;
 # 730 "kind.ag"
-        vaults = conf.getStrings(groupname);
+      string groupname = "group_" + vault;
 # 731 "kind.ag"
-      else
+      if (conf.hasKey(groupname))
 # 732 "kind.ag"
-        vaults.push_back(vault);
+        vaults = conf.getStrings(groupname);
 # 733 "kind.ag"
-
+      else
 # 734 "kind.ag"
-      if (!expireOnly)
+        vaults.push_back(vault);
 # 735 "kind.ag"
-        for (unsigned int i = 0; i < vaults.size(); ++i)
+
 # 736 "kind.ag"
-          {
+      if (!expireOnly)
 # 737 "kind.ag"
-            backupVault(vaults[i], conf, imageTime, fullImage);
-# 738 "kind.ag"
-            if (!logSizeFile.empty())
-# 739 "kind.ag"
-              {
-# 740 "kind.ag"
-                Strings st;
-# 741 "kind.ag"
-                for (auto s : sizes)
-# 742 "kind.ag"
-                  {
-# 743 "kind.ag"
-                    string h = s.first + " " + to_string(s.second.first) + " " + to_string(s.second.second);
-# 744 "kind.ag"
-                    st.push_back(h);
-# 745 "kind.ag"
-                  }
-# 746 "kind.ag"
-                strings2File(st, logSizeFile);
-# 747 "kind.ag"
-              }
-# 748 "kind.ag"
-          }
-# 749 "kind.ag"
-
-# 750 "kind.ag"
-      if (!backupOnly)
-# 751 "kind.ag"
         for (unsigned int i = 0; i < vaults.size(); ++i)
+# 738 "kind.ag"
+          {
+# 739 "kind.ag"
+            backupVault(vaults[i], conf, imageTime, fullImage);
+# 740 "kind.ag"
+            if (!logSizeFile.empty())
+# 741 "kind.ag"
+              {
+# 742 "kind.ag"
+                Strings st;
+# 743 "kind.ag"
+                for (auto s : sizes)
+# 744 "kind.ag"
+                  {
+# 745 "kind.ag"
+                    string h = s.first + " " + to_string(s.second.first) + " " + to_string(s.second.second);
+# 746 "kind.ag"
+                    st.push_back(h);
+# 747 "kind.ag"
+                  }
+# 748 "kind.ag"
+                strings2File(st, logSizeFile);
+# 749 "kind.ag"
+              }
+# 750 "kind.ag"
+          }
+# 751 "kind.ag"
+
 # 752 "kind.ag"
-          expireVault(vaults[i], conf, imageTime);
+      if (!backupOnly)
 # 753 "kind.ag"
-
+        for (unsigned int i = 0; i < vaults.size(); ++i)
 # 754 "kind.ag"
-      if (!quiet)
+          expireVault(vaults[i], conf, imageTime);
 # 755 "kind.ag"
-        cout << DateTime::now().getString('h') << ": finished" << endl;
-# 756 "kind.ag"
 
+# 756 "kind.ag"
+      if (!quiet)
 # 757 "kind.ag"
-    }
+        cout << DateTime::now().getString('h') << ": finished" << endl;
 # 758 "kind.ag"
-  catch (const Exception& ex)
+
 # 759 "kind.ag"
-    {
+    }
 # 760 "kind.ag"
-      cerr << "Exception: " << ex.what() << endl;
+  catch (const Exception& ex)
 # 761 "kind.ag"
-      exitCode = 1;
+    {
 # 762 "kind.ag"
-    }
+      cerr << "Exception: " << ex.what() << endl;
 # 763 "kind.ag"
-  catch (const char* msg)
+      exitCode = 1;
 # 764 "kind.ag"
-    {
+    }
 # 765 "kind.ag"
-      cerr << "Exception(char*): " << msg << endl;
+  catch (const char* msg)
 # 766 "kind.ag"
-      exitCode = 1;
-# 767 "kind.ag"
-    }
-# 768 "kind.ag"
-  catch (const string& msg)
-# 769 "kind.ag"
     {
-# 770 "kind.ag"
-      cerr << "Exception(string): " << msg << endl;
-# 771 "kind.ag"
+# 767 "kind.ag"
+      cerr << "Exception(char*): " << msg << endl;
+# 768 "kind.ag"
       exitCode = 1;
-# 772 "kind.ag"
+# 769 "kind.ag"
     }
+# 770 "kind.ag"
+  catch (const string& msg)
+# 771 "kind.ag"
+    {
+# 772 "kind.ag"
+      cerr << "Exception(string): " << msg << endl;
 # 773 "kind.ag"
-  removeLock(lockFile);
+      exitCode = 1;
 # 774 "kind.ag"
-  return exitCode;
+    }
 # 775 "kind.ag"
+  removeLock(lockFile);
+# 776 "kind.ag"
+  return exitCode;
+# 777 "kind.ag"
 }

@@ -333,7 +333,9 @@ void backupVault(const string& vault,
           int rc;
           backupResult = myPopen(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
           // strings2File(backupResult, imageFullName + "/rsync-log");
-          if (rc == 0 || rc == 24) // "no error" or "vanished source files" (ignored)
+          if (rc == 0 || 
+	      rc == 24 || // "no error" or "vanished source files" (ignored)
+	      rc == 6114) // workaround for wrong exit code ??!!
             {
               unlink(errorfile.c_str());
               string lastLink = vaultpath + "/last";
@@ -353,7 +355,7 @@ void backupVault(const string& vault,
               //  cout << vault << " " << st << " || " << sc << endl;
             }
           else
-            throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc)+")");
+            throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc) + ")");
         }
       else
         cout << "Not executing " << rsyncCmd << endl;
