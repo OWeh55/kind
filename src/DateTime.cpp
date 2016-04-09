@@ -53,7 +53,7 @@ bool DateTime::match(const set<int>& Y, const set<int>& M, const set<int>& D,
 {
   tm* tm = localtime(&theTime);
   return match(Y, tm->tm_year) &&
-         match(M, tm->tm_mon - 1) &&
+         match(M, tm->tm_mon + 1) &&
          match(D, tm->tm_mday) &&
          match(W, tm->tm_wday) &&
          match(h, tm->tm_hour) &&
