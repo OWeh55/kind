@@ -104,13 +104,13 @@ DateTime getExpireDate(const DateTime& imageTime, const KindConfig& conf, string
       parseRule(expireRules[k], M, D, W, h, expirePeriod);
 #if 0
       cout << expireRules[k] << endl;
-      for (auto v:M) cout << v << " ";
+      for (auto v : M) cout << v << " ";
       cout << endl;
-      for (auto v:D) cout << v << " ";
+      for (auto v : D) cout << v << " ";
       cout << endl;
-      for (auto v:W) cout << v << " ";
+      for (auto v : W) cout << v << " ";
       cout << endl;
-      for (auto v:h) cout << v << " ";
+      for (auto v : h) cout << v << " ";
       cout << endl;
       cout << imageTime.getString('m') << endl;
 #endif
