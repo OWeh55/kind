@@ -34,4 +34,5 @@ Strings myPopen(const std::string& cmd,
 void removeLock(const std::string& lockfilename);
 void createLock(const std::string& lockfilename);
 
+int removeDir(const std::string& path);
 #endif

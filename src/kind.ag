@@ -75,6 +75,20 @@ void debugPrint(const string& text)
     cout << "    " << text << endl;
 }
 
+void writeSizes(const string logSizeFile)
+{
+  if (!logSizeFile.empty())
+    {
+      Strings st;
+      for (auto s : sizes)
+	{
+	  string h = s.first + " " + to_string(s.second.first) + " " + to_string(s.second.second);
+	  st.push_back(h);
+	}
+      strings2File(st, logSizeFile);
+    }
+}
+
 void readMasterConfig1(const string& fn, KindConfig& conf)
 {
   verbosePrint("reading master config " + fn);
@@ -335,7 +349,6 @@ void backupVault(const string& vault,
           verbosePrint("syncing (" + rsyncCmd + ")");
           int rc;
           backupResult = myPopen(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
-          // strings2File(backupResult, imageFullName + "/rsync-log");
           if (rc == 0 ||
               rc == 24 || // "no error" or "vanished source files" (ignored)
               rc == 6144) // workaround for wrong exit code ??!!
@@ -371,104 +384,6 @@ void backupVault(const string& vault,
       cerr << "Exception in vault " << vault << ": " << ex.what() << endl;
     }
 }
-
-int removeDir(const string& path)
-{
-  debugPrint("removeDir " + path);
-  DIR* d = opendir(path.c_str());
-
-  int r = -1;
-  if (d)
-    {
-      struct dirent* p;
-
-      r = 0;
-      while (!r && (p = readdir(d)))
-        {
-          int r2 = 0;
-          string fn = p->d_name;
-          if (fn != "." && fn != "..")
-            {
-              fn = path + "/" + fn;
-              debugPrint("-- " + fn);
-              struct stat statbuf;
-              if (lstat(fn.c_str(), &statbuf) == 0)
-                {
-                  if (S_ISLNK(statbuf.st_mode))
-                    {
-                      debugPrint("Remove link " + fn);
-                      r2 = unlink(fn.c_str());
-                    }
-                  else if (S_ISDIR(statbuf.st_mode))
-                    {
-                      debugPrint("Remove dir " + fn);
-                      r2 = removeDir(fn);
-                    }
-                  else
-                    {
-                      debugPrint("Remove file " + fn);
-                      r2 = unlink(fn.c_str());
-                    }
-                }
-              else
-                {
-                  cout << "stat(" << fn << ") failed" << endl;
-                  // we assume "file" here
-                  r2 = unlink(fn.c_str());
-                }
-            }
-          r = r2;
-        }
-      closedir(d);
-    }
-
-  if (r == 0)
-    {
-      debugPrint("Remove Dir itself " + path);
-      r = rmdir(path.c_str());
-    }
-
-  return r;
-}
-
-#if 0
-int removeDir(const string& dname)
-{
-  int rc = 0;
-  if (!dryRun)
-    {
-      Strings files;
-      // subdirectories
-      dirList(dname, files);
-      for (unsigned int i = 0; i < files.size(); ++i)
-        {
-          debugPrint("Remove dir " + files[i]);
-          for (unsigned int i = 0; i < files.size(); ++i)
-            rc += removeDir(files[i]);
-        }
-      files.clear();
-
-      // files in directory
-      fileList(dname, files);
-      for (unsigned int i = 0; i < files.size(); ++i)
-        {
-          debugPrint("unlink " + files[i]);
-          if (!dryRun)
-            {
-              if (unlink(files[i].c_str()) != 0)
-                rc++;
-            }
-        }
-      debugPrint("rmdir " + dname);
-
-      // directory
-      if (rmdir(dname.c_str()) != 0)
-        rc++;
-    }
-
-  return rc;
-}
-#endif
 
 void expireVault(const string& vault, KindConfig conf, DateTime now)
 {
@@ -613,7 +528,7 @@ int main(int argc, char* argv[])
 
       banks = conf.getStrings("bank");
       if (banks.empty())
-        throw Exception("read master config", "no banks defined");
+        throw Exception("read master configuration", "no banks defined");
 
       if (listConfig)
         {
@@ -655,16 +570,7 @@ int main(int argc, char* argv[])
         for (unsigned int i = 0; i < vaults.size(); ++i)
           {
             backupVault(vaults[i], conf, imageTime, fullImage);
-            if (!logSizeFile.empty())
-              {
-                Strings st;
-                for (auto s : sizes)
-                  {
-                    string h = s.first + " " + to_string(s.second.first) + " " + to_string(s.second.second);
-                    st.push_back(h);
-                  }
-                strings2File(st, logSizeFile);
-              }
+	    writeSizes(logSizeFile);
           }
 
       if (doExpire)
