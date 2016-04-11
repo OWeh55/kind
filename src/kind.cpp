@@ -585,7 +585,7 @@ void backupVault(const string& vault,
 # 289 "kind.ag"
               int rc;
 # 290 "kind.ag"
-              excluded = myPopen(excludeCommand, rc, debug);
+              Strings excludedFiles = myPopen(excludeCommand, rc, debug);
 # 291 "kind.ag"
               if (rc > 0)
 # 292 "kind.ag"
@@ -593,15 +593,15 @@ void backupVault(const string& vault,
 # 293 "kind.ag"
 
 # 294 "kind.ag"
-              for (unsigned int i = 0; i < excluded.size(); ++i)
+              for (unsigned int i = 0; i < excludedFiles.size(); ++i)
 # 295 "kind.ag"
                 {
 # 296 "kind.ag"
-                  FileName fn(excluded[i]);
+                  FileName fn(excludedFiles[i]);
 # 297 "kind.ag"
-                  excluded[i] = '/' + fn.getPath();
+                  excluded.push_back('/' + fn.getPath());
 # 298 "kind.ag"
-                  debugPrint("Excluding: " + excluded[i]);
+                  debugPrint("Excluding: " + excluded.back());
 # 299 "kind.ag"
                 }
 # 300 "kind.ag"

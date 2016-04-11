@@ -287,15 +287,15 @@ void backupVault(const string& vault,
               verbosePrint("searching for exclusions (" + excludeCommand + ")");
 
               int rc;
-              excluded = myPopen(excludeCommand, rc, debug);
+              Strings excludedFiles = myPopen(excludeCommand, rc, debug);
               if (rc > 0)
                 throw Exception("Find exludes", "Search for excludes failed");
 
-              for (unsigned int i = 0; i < excluded.size(); ++i)
+              for (unsigned int i = 0; i < excludedFiles.size(); ++i)
                 {
-                  FileName fn(excluded[i]);
-                  excluded[i] = '/' + fn.getPath();
-                  debugPrint("Excluding: " + excluded[i]);
+                  FileName fn(excludedFiles[i]);
+                  excluded.push_back('/' + fn.getPath());
+                  debugPrint("Excluding: " + excluded.back());
                 }
             }
 
