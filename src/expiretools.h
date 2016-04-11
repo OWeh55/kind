@@ -6,10 +6,13 @@
 
 DateTime imageDate(const std::string& image);
 
-DateTime getExpireDate(const DateTime& imageTime, const KindConfig& conf, std::string& rule);
+DateTime getExpireDate(const DateTime& imageTime,
+                       const KindConfig& conf, std::string& rule);
 
-void createExpireFile(const std::string& image, const KindConfig& conf, std::string& rule);
+void createExpireFile(const std::string& image,
+                      const KindConfig& conf, std::string& rule);
 
-DateTime expireDate(const std::string& image, const KindConfig& conf, std::string& rule);
+DateTime expireDate(const std::string& image,
+                    const KindConfig& conf, std::string& rule);
 
 #endif

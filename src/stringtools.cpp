@@ -149,35 +149,41 @@ time_t stot(const string& s)
     unit += 's';
   if (unit == "secs")
     return val;
-  val *= 60;
   if (unit == "mins")
-    return val;
-  val *= 60;
+    return val * 60;
   if (unit == "hours")
-    return val;
-  val *= 24;
+    return val * 60 * 60;
   if (unit == "days")
-    return val;
+    return val * 60 * 60 * 24;
   if (unit == "weeks")
-    return val * 7;
-  val *= 30;
+    return val * 60 * 60 * 24 * 7;
   if (unit == "months")
-    return val;
-  val *= 12;
-  if (unit != "years")
-    throw Exception("Parse time", "unknown time unit " + unit);
-  return val;
+    return val * 60 * 60 * 24 * 30;
+  if (unit == "years")
+    return val * 60 * 60 * 24 * 365;
+  throw Exception("Parse time", "unknown time unit " + unit);
 }
 
 long int getNumber(const string& l)
 {
   // read *all* digits from string l ignoring all other characters
+  // "read 3,000,421 Bytes" => 3000421
   string d;
   for (unsigned int i = 0; i < l.size(); ++i)
     if (isdigit(l[i]))
       d += l[i];
   // return long int value of digits
-  return stol(d);
+  long int res = 0;
+  try
+    {
+      res = stol(d);
+    }
+  catch (...)
+    {
+      // we ignore overflow here because value is only informative
+      cout << "stol failed on " << l << endl;
+    }
+  return res;
 }
 
 void replacePlaceHolder(string& s,

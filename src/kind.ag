@@ -40,10 +40,12 @@
   opt2: if not given or empty kind looks for
   opt2:   /etc/kind/master.conf
   opt2:   /ffp/etc/kind/master.conf
-  opt: B, backuponly, void, backupOnly, Only backup/no expire, false
-  opt: E, expireonly, void, expireOnly, Only expire/no backup, false
-  opt: D, dryrun, Void, dryRun, Dry run (no real backup), false
+  opt: B, backup, void, doBackup, Backup, false
+  opt: E, expire, void, doExpire, Expire, false
   opt: C, listconfig, void, listConfig, Show configuration, false
+  opt2:   if none of backup, expire or listconfig is specified,
+  opt2:   backup and expire is assumed.
+  opt: D, dryrun, Void, dryRun, Dry run (no real backup), false
   opt: v, verbose, Void, verbose,  Verbose,  false
   opt: d, debug, Void, debug, Debug output of many data, false
   opt: q, quiet, Void, quiet, Be quiet - no messages, false
@@ -177,8 +179,10 @@ void backupVault(const string& vault,
 
       readVaultConfig(vault, conf);
 
+      // where to store
       string vaultpath = findVault(vault);
 
+      // image path
       string imageName = getImageName(conf);
       if (!imageName.empty())
         imageName += '-';
@@ -216,6 +220,7 @@ void backupVault(const string& vault,
           error.close();
         }
 
+      // create source descriptor
       string host;
       if (conf.hasKey("host"))
         host = conf.getString("host");
@@ -237,8 +242,14 @@ void backupVault(const string& vault,
       if (!conf.getBool("ignorePermission"))
         rsyncCmd += "-pgo";
       vector<string> rso = conf.getStrings("rsyncOption");
-      for (string opt : rso)
+      for (const string& opt : rso)
         rsyncCmd += opt + " ";
+
+      // excludes
+      Strings excluded;
+
+      if (conf.hasKey("exclude"))
+        excluded += conf.getStrings("exclude");
 
       if (!host.empty())  // shell mode
         {
@@ -251,9 +262,6 @@ void backupVault(const string& vault,
             rshCommand = "ssh";
 
           rshCommand += " " + userAtHost;
-
-          // excludes
-          Strings excluded;
 
           string userExcludeCommand = conf.getString("userExcludeCommand");
 
@@ -291,9 +299,6 @@ void backupVault(const string& vault,
                 excluded += excludes2;
             }
 
-          if (conf.hasKey("exclude"))
-            excluded += conf.getStrings("exclude");
-
           if (!dryRun)
             strings2File(excluded, imageFullName + "/exclude");
 
@@ -311,13 +316,6 @@ void backupVault(const string& vault,
       else
         {
           // cout << "USING SERVERMODE" << endl;
-          vector<string> excluded;
-          if (conf.hasKey("exclude"))
-            {
-              Strings excludes = conf.getStrings("exclude");
-              for (string s : excludes)
-                excluded.push_back(s);
-            }
 
           if (!dryRun)
             strings2File(excluded, imageFullName + "/exclude");
@@ -340,7 +338,7 @@ void backupVault(const string& vault,
           // strings2File(backupResult, imageFullName + "/rsync-log");
           if (rc == 0 ||
               rc == 24 || // "no error" or "vanished source files" (ignored)
-              rc == 6114) // workaround for wrong exit code ??!!
+              rc == 6144) // workaround for wrong exit code ??!!
             {
               unlink(errorfile.c_str());
               string lastLink = vaultpath + "/last";
@@ -580,8 +578,15 @@ int main(int argc, char* argv[])
   string lockFile;
   try
     {
-      if (debug)
+      // handling of parameters and switches
+      if (debug)        // debug implies verbose
         verbose = true;
+
+      if (!doBackup && !doExpire && !listConfig)
+        {
+          doBackup = true;
+          doExpire = true;
+        }
 
       KindConfig conf;
 
@@ -646,7 +651,7 @@ int main(int argc, char* argv[])
       else
         vaults.push_back(vault);
 
-      if (!expireOnly)
+      if (doBackup)
         for (unsigned int i = 0; i < vaults.size(); ++i)
           {
             backupVault(vaults[i], conf, imageTime, fullImage);
@@ -662,7 +667,7 @@ int main(int argc, char* argv[])
               }
           }
 
-      if (!backupOnly)
+      if (doExpire)
         for (unsigned int i = 0; i < vaults.size(); ++i)
           expireVault(vaults[i], conf, imageTime);
 
