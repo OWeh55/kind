@@ -12,22 +12,28 @@ using namespace std;
 
 void debugPrint(const std::string& s);
 
-DateTime stringToDate(const string& dateString)
+void readSetRules(const KindConfig &conf,
+		    map<string, pair<time_t, time_t> > &ruleSet,
+		    map<string, string> &backupSetRule)
 {
-  Strings ss;
-  split(dateString, ss, '-');
-  if (ss.size() < 5)
-    throw Exception("stringToDate", "date format invalid");
-  int Y = stoi(ss[1]);
-  int M = stoi(ss[2]);
-  int D = stoi(ss[3]);
-  int h = stoi(ss[4]);
-  int m = 0, s = 0;
-  if (ss.size() > 5) // longImageName
-    m = stoi(ss[5]);
-  if (ss.size() > 6)
-    s = stoi(ss[6]);
-  return DateTime(Y, M, D, h, m, s);
+  Strings setRules = conf.getStrings("setRules");
+  if (!setRules.empty())
+    {
+      for (const string& rule : setRules)
+	{
+	  Strings splittedRule;
+	  split(rule, splittedRule, ':');
+	  if (splittedRule.size() != 3)
+	    throw Exception("config", "Error in setRule: " + rule);
+	  string name = splittedRule[0];
+	  if (name == "expire")
+	    throw Exception("config", "Use of reserved name expire in setRule is forbidden");
+	  backupSetRule[name] = rule;
+	  time_t distance = stot(splittedRule[1]);
+	  time_t keep = stot(splittedRule[2]);
+	  ruleSet[name] = pair<time_t, time_t>(distance, keep);
+	}
+    }
 }
 
 void stringToDate(const string& dateString, DateTime& t, string& label)
@@ -47,12 +53,6 @@ void stringToDate(const string& dateString, DateTime& t, string& label)
   if (ss.size() > 6)
     s = stoi(ss[6]);
   t = DateTime(Y, M, D, h, m, s);
-}
-
-DateTime imageDate(const string& image)
-{
-  FileName fn(image);
-  return stringToDate(fn.getName());
 }
 
 void parseRule(string rule,
@@ -136,36 +136,3 @@ DateTime getExpireDate(const DateTime& imageTime,
   return expireTime;
 }
 
-void createExpireFile(const string& image, const KindConfig& conf, string& rule)
-{
-  string expireFileName = image + "/expires";
-  // epire date from image date + rules
-  DateTime imageTime = imageDate(image);
-  DateTime expireTime = getExpireDate(imageTime, conf, rule);
-
-  // create file
-  ofstream xfile(expireFileName);
-  // we use prefix "expire-" to allow same parsing as for imagenames
-  xfile << "expire-" << expireTime.getString('m') << endl;
-  xfile << rule << endl;
-  xfile.close();
-}
-
-DateTime expireDate(const string& image, const KindConfig& conf, string& rule)
-{
-  string expireFileName = image + "/expires";
-  if (!fileExists(expireFileName)) // lost expire file ?
-    {
-      cout << "Recreate expire file " << expireFileName << endl;
-      createExpireFile(image, conf, rule);
-    }
-
-  debugPrint("reading " + expireFileName);
-  Strings s;
-  file2Strings(expireFileName, s);
-  if (s.empty())
-    throw Exception("expireDate", "expire empty");
-  if (s.size() > 1)
-    rule = s[1];
-  return stringToDate(s[0]);
-}

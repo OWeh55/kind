@@ -164,16 +164,6 @@ string getImageName(const KindConfig& conf)
   return res;
 }
 
-#if 0
-bool isValidImage(const string& imageName)
-{
-  return dirExists(imageName) &&
-         !fileExists(imageName + "/error") &&
-         fileExists(imageName + "/expires") &&
-         dirExists(imageName + "/tree");
-}
-#endif
-
 Images findImages(const string& vaultpath, const KindConfig& conf, bool all)
 {
   Strings dirs;
@@ -392,43 +382,29 @@ void backupVault(const string& vault,
 
       // existing images
       Images validImageList = findImages(vaultpath, conf, false);
-      string currentSet = "expire";
+      string currentSet = "expire"; // we are not using backupSets
 
-      // check if we are using setRules
+      // check if we are using backup sets
 
       map<string, pair<time_t, time_t> > ruleSet;
       map<string, string> backupSetRule;
 
       if (conf.hasKey("setRules"))
         {
-          Strings setRules = conf.getStrings("setRules");
-          if (!setRules.empty())
+	  readSetRules(conf,ruleSet,backupSetRule);
+          if (!ruleSet.empty())
             {
               backupNow = false;
-              for (const string& rule : setRules)
-                {
-                  Strings splittedRule;
-                  split(rule, splittedRule, ':');
-                  if (splittedRule.size() != 3)
-                    throw Exception("config", "Error in setRule: " + rule);
-                  string name = splittedRule[0];
-                  if (name == "expire")
-                    throw Exception("config", "Can't use reserved name expire in setRule");
-                  backupSetRule[name] = rule;
-                  time_t distance = stot(splittedRule[1]);
-                  time_t keep = stot(splittedRule[2]);
-                  ruleSet[name] = pair<time_t, time_t>(distance, keep);
-                }
 
               // find time for nextBackup for every backupSet
               map<string, DateTime> nextBackup;
 
-              // set default time for next Backup to now
+              // find time for next backup
+              // set default time for next Backup to now 
+	      //    (if there is no image yet)
               for (auto rule : ruleSet)
                 nextBackup[rule.first] = imageTime;
 
-              // find time for next backup
-              //
               for (const Image& image : validImageList)
                 {
                   if (image.series != "expire")
@@ -449,7 +425,7 @@ void backupVault(const string& vault,
               for (auto rule : ruleSet)
                 {
                   string name = rule.first;
-                  if (nextBackup[name] <= imageTime)
+                  if (nextBackup[name] <= imageTime + 5) // small offset of 5s for "jitter"
                     {
                       backupNow = true;
                       if (currentSet.empty())
@@ -462,7 +438,8 @@ void backupVault(const string& vault,
         }
 
       verbosePrint("backup to \"" + imageFullName + "\"");
-      verbosePrint("backup set is \"" + currentSet + "\"");
+      if (!currentSet.empty())
+	verbosePrint("backup set is \"" + currentSet + "\"");
 
       if (backupNow)
         {
@@ -480,10 +457,12 @@ void backupVault(const string& vault,
 
           if (!dryRun)
             {
+	      // set symlink to last image
               string lastLink = vaultpath + "/last";
               unlink(lastLink.c_str());
               symlink(imageFullName.c_str(), lastLink.c_str());
 
+	      // write expire date to file
               DateTime expireTime;
               string rule;
               if (currentSet == "expire")
@@ -530,7 +509,7 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
     {
       debugPrint(image.name);
 
-      DateTime imageTime = imageDate(image.name);
+      DateTime imageTime = image.time;
 
       if (imageTime != now &&          // ignore just created image
           image.name != lastValidImage // ignore last valid image
