@@ -18,6 +18,7 @@
 #include "DateTime.h"
 #include "Strings.h"
 #include "FileName.h"
+#include "Image.h"
 
 #include "KindConfig.h"
 #include "filetools.h"
@@ -56,12 +57,41 @@ using namespace std;
 
 /*AppGen:Global*/
 
-void createExpireFile(const string& image, const KindConfig& conf, string& rule);
-
 Strings banks;
 
 typedef pair<long int, long int> Sizes;
 map<string, Sizes> sizes;
+
+void readSizes(const string& logSizeFile)
+{
+  if (fileExists(logSizeFile))
+    {
+      vector<string> ss;
+      file2Strings(logSizeFile, ss);
+      for (const string& s : ss)
+        {
+          unsigned int i = 0;
+          string v = getWord(s, i);
+          long int s1 = getLongInt(s, i);
+          long int s2 = getLongInt(s, i);
+          sizes[v] = Sizes(s1, s2);
+        }
+    }
+}
+
+void writeSizes(const string logSizeFile)
+{
+  if (!logSizeFile.empty())
+    {
+      Strings st;
+      for (auto s : sizes)
+        {
+          string h = s.first + " " + to_string(s.second.first) + " " + to_string(s.second.second);
+          st.push_back(h);
+        }
+      strings2File(st, logSizeFile);
+    }
+}
 
 void verbosePrint(const string& text)
 {
@@ -71,22 +101,8 @@ void verbosePrint(const string& text)
 
 void debugPrint(const string& text)
 {
-  if (verbose)
+  if (debug)
     cout << "    " << text << endl;
-}
-
-void writeSizes(const string logSizeFile)
-{
-  if (!logSizeFile.empty())
-    {
-      Strings st;
-      for (auto s : sizes)
-	{
-	  string h = s.first + " " + to_string(s.second.first) + " " + to_string(s.second.second);
-	  st.push_back(h);
-	}
-      strings2File(st, logSizeFile);
-    }
 }
 
 void readMasterConfig1(const string& fn, KindConfig& conf)
@@ -148,36 +164,200 @@ string getImageName(const KindConfig& conf)
   return res;
 }
 
+#if 0
 bool isValidImage(const string& imageName)
 {
   return dirExists(imageName) &&
          !fileExists(imageName + "/error") &&
+         fileExists(imageName + "/expires") &&
          dirExists(imageName + "/tree");
 }
+#endif
 
-Strings findValidImages(const string& vaultpath, const KindConfig& conf)
+Images findImages(const string& vaultpath, const KindConfig& conf, bool all)
 {
-  Strings imageList;
+  Strings dirs;
   debugPrint("searching images in " + vaultpath);
-  dirList(vaultpath, imageList);
+  dirList(vaultpath, dirs);
 
-  Strings validImageList;
-  for (unsigned int i = 0; i < imageList.size(); ++i)
+  Images imageList;
+  for (string dir : dirs)
     {
-      FileName fn(imageList[i]);
+      FileName fn(dir);
       string imgname = getImageName(conf);
-      int len = imgname.length();
-      if (fn.getName().substr(0, len) == imgname)
+      if (startsWith(fn.getName(), imgname))
         {
-          debugPrint("Checking " + imageList[i]);
-          if (isValidImage(imageList[i]))
-            validImageList.push_back(imageList[i]);
+          debugPrint("Checking " + dir);
+          Image image(dir);
+
+          if (all || image.valid)
+            imageList.push_back(image);
         }
     }
-  if (validImageList.empty())
-    throw Exception("Find reference", "No reference found");
-  sort(validImageList.begin(), validImageList.end());
-  return validImageList;
+  if (imageList.size() > 1)
+    sort(imageList.begin(), imageList.end());
+  return imageList;
+}
+
+void doBackup(const string& vault,
+              const string& imageFullName,
+              const string& referenceImage,
+              const KindConfig& conf)
+{
+  // create image path
+  if (!dryRun)
+    if (mkdir(imageFullName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
+      throw Exception("Create image", "failed to create " + imageFullName);
+
+  // error message
+  // we write an generic error message to mark backup as unsuccessful
+  // will be deleted at successful end of rsync
+  string errorfile = imageFullName + "/error";
+  if (!dryRun)
+    {
+      ofstream error(errorfile);
+      error << "failed" << endl;
+      error.close();
+    }
+
+  // create source descriptor
+  string host;
+  if (conf.hasKey("host"))
+    host = conf.getString("host");
+
+  string server;
+  if (conf.hasKey("server"))
+    server = conf.getString("server");
+
+  if (!host.empty() && !server.empty())
+    throw Exception("backupVault", "Cannot have host and server");
+
+  string path = conf.getString("path");
+  if (path.empty())
+    throw Exception("rsync", "empty source path");
+  if (path.back() != '/')
+    path += '/';
+
+  string rsyncCmd = "rsync -vrltH --delete --stats -D --numeric-ids ";
+  if (!conf.getBool("ignorePermission"))
+    rsyncCmd += "-pgo";
+  vector<string> rso = conf.getStrings("rsyncOption");
+  for (const string& opt : rso)
+    rsyncCmd += opt + " ";
+
+  // excludes
+  Strings excluded;
+
+  if (conf.hasKey("exclude"))
+    excluded += conf.getStrings("exclude");
+
+  if (!host.empty())  // shell mode
+    {
+      // cout << "USING SHELLMODE '" << host << "'" << endl;
+      string remoteShell = conf.getString("remoteShell");
+      string userAtHost = conf.getString("user") + "@" +
+                          conf.getString("host");
+      string rshCommand = remoteShell;
+      if (remoteShell.empty())
+        rshCommand = "ssh";
+
+      rshCommand += " " + userAtHost;
+
+      string userExcludeCommand = conf.getString("userExcludeCommand");
+
+      if (!userExcludeCommand.empty())
+        {
+          replacePlaceHolder(userExcludeCommand, "%path", path);
+          string excludeCommand = rshCommand + " " + userExcludeCommand;
+
+          verbosePrint("searching for exclusions (" + excludeCommand + ")");
+
+          int rc;
+          Strings excludedFiles = myPopen(excludeCommand, rc, debug);
+          if (rc > 0)
+            throw Exception("Find exludes", "Search for excludes failed");
+
+          for (unsigned int i = 0; i < excludedFiles.size(); ++i)
+            {
+              FileName fn(excludedFiles[i]);
+              excluded.push_back('/' + fn.getPath());
+              debugPrint("Excluding: " + excluded.back());
+            }
+        }
+
+      string userExcludeFile = conf.getString("userExcludeFile");
+      if (!userExcludeFile.empty())
+        {
+          userExcludeFile = path + userExcludeFile;
+          string getExcludeFileCommand = rshCommand;
+          getExcludeFileCommand += " \" if [ -f '" + userExcludeFile + "' ]; then ";
+          getExcludeFileCommand += " cat '" + userExcludeFile + "' ; fi \"";
+          // cout << getExcludeFileCommand << endl;
+          int rc;
+          Strings excludes2 = myPopen(getExcludeFileCommand, rc, debug);
+          if (rc == 0)
+            excluded += excludes2;
+        }
+
+      if (!dryRun)
+        strings2File(excluded, imageFullName + "/exclude");
+
+      // rsync image
+
+      if (!remoteShell.empty())
+        rsyncCmd += " -e \'" + remoteShell + "\' ";
+
+      rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
+      if (!referenceImage.empty())
+        rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
+      rsyncCmd += userAtHost + ":" + path + " ";
+      rsyncCmd += imageFullName + "/tree";
+    } // shell mode
+  else
+    {
+      // cout << "USING SERVERMODE" << endl;
+
+      if (!dryRun)
+        strings2File(excluded, imageFullName + "/exclude");
+
+      rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
+      if (!referenceImage.empty())
+        rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
+      rsyncCmd += conf.getString("server") + "::" + path + " ";
+      rsyncCmd += imageFullName + "/tree";
+    }
+
+  debugPrint("Action: " + rsyncCmd);
+
+  vector<string> backupResult;
+  if (!dryRun)
+    {
+      verbosePrint("syncing (" + rsyncCmd + ")");
+      int rc;
+      backupResult = myPopen(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
+      if (rc == 0 ||
+          rc == 24 || // "no error" or "vanished source files" (ignored)
+          rc == 6144) // workaround for wrong exit code ??!!
+        {
+          unlink(errorfile.c_str());
+          long int st = 0;
+          long int sc = 0;
+          for (auto bl : backupResult)
+            {
+              if (startsWith(bl, "Total file size"))
+                st = getNumber(bl);
+              else if (startsWith(bl, "Total transferred file size"))
+                sc = getNumber(bl);
+            }
+          // sizes[vault] = pair<long int, long int>(st, sc);
+          sizes[vault] = Sizes(st, sc);
+          //  cout << vault << " " << st << " || " << sc << endl;
+        }
+      else
+        throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc) + ")");
+    }
+  else
+    cout << "Not executing " << rsyncCmd << endl;
 }
 
 void backupVault(const string& vault,
@@ -200,6 +380,7 @@ void backupVault(const string& vault,
       string imageName = getImageName(conf);
       if (!imageName.empty())
         imageName += '-';
+
       string imageFullName =  vaultpath + "/" + imageName ;
 
       if (conf.getBool("longImageName"))
@@ -207,177 +388,119 @@ void backupVault(const string& vault,
       else
         imageFullName += imageTime.getString('s');
 
-      verbosePrint("backup to \"" + imageFullName + "\"");
+      bool backupNow = true;
 
-      // find reference image
-      string referenceImage;
-      if (!fullImage)
+      // existing images
+      Images validImageList = findImages(vaultpath, conf, false);
+      string currentSet = "expire";
+
+      // check if we are using setRules
+
+      map<string, pair<time_t, time_t> > ruleSet;
+      map<string, string> backupSetRule;
+
+      if (conf.hasKey("setRules"))
         {
-          Strings validImageList = findValidImages(vaultpath, conf);
-          // last image is newest image
-          referenceImage = validImageList.back();
-        }
-
-      // create image path
-      if (!dryRun)
-        if (mkdir(imageFullName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
-          throw Exception("Create image", "failed to create " + imageFullName);
-
-      // error message
-      // we write an generic error message to mark backup as unsuccessful
-      // will be deleted at successful end of rsync
-      string errorfile = imageFullName + "/error";
-      if (!dryRun)
-        {
-          ofstream error(errorfile);
-          error << "failed" << endl;
-          error.close();
-        }
-
-      // create source descriptor
-      string host;
-      if (conf.hasKey("host"))
-        host = conf.getString("host");
-
-      string server;
-      if (conf.hasKey("server"))
-        server = conf.getString("server");
-
-      if (!host.empty() && !server.empty())
-        throw Exception("backupVault", "Cannot have host and server");
-
-      string path = conf.getString("path");
-      if (path.empty())
-        throw Exception("rsync", "empty source path");
-      if (path.back() != '/')
-        path += '/';
-
-      string rsyncCmd = "rsync -vrltH --delete --stats -D --numeric-ids ";
-      if (!conf.getBool("ignorePermission"))
-        rsyncCmd += "-pgo";
-      vector<string> rso = conf.getStrings("rsyncOption");
-      for (const string& opt : rso)
-        rsyncCmd += opt + " ";
-
-      // excludes
-      Strings excluded;
-
-      if (conf.hasKey("exclude"))
-        excluded += conf.getStrings("exclude");
-
-      if (!host.empty())  // shell mode
-        {
-          // cout << "USING SHELLMODE '" << host << "'" << endl;
-          string remoteShell = conf.getString("remoteShell");
-          string userAtHost = conf.getString("user") + "@" +
-                              conf.getString("host");
-          string rshCommand = remoteShell;
-          if (remoteShell.empty())
-            rshCommand = "ssh";
-
-          rshCommand += " " + userAtHost;
-
-          string userExcludeCommand = conf.getString("userExcludeCommand");
-
-          if (!userExcludeCommand.empty())
+          Strings setRules = conf.getStrings("setRules");
+          if (!setRules.empty())
             {
-              replacePlaceHolder(userExcludeCommand, "%path", path);
-              string excludeCommand = rshCommand + " " + userExcludeCommand;
-
-              verbosePrint("searching for exclusions (" + excludeCommand + ")");
-
-              int rc;
-              Strings excludedFiles = myPopen(excludeCommand, rc, debug);
-              if (rc > 0)
-                throw Exception("Find exludes", "Search for excludes failed");
-
-              for (unsigned int i = 0; i < excludedFiles.size(); ++i)
+              backupNow = false;
+              for (const string& rule : setRules)
                 {
-                  FileName fn(excludedFiles[i]);
-                  excluded.push_back('/' + fn.getPath());
-                  debugPrint("Excluding: " + excluded.back());
+                  Strings splittedRule;
+                  split(rule, splittedRule, ':');
+                  if (splittedRule.size() != 3)
+                    throw Exception("config", "Error in setRule: " + rule);
+                  string name = splittedRule[0];
+                  if (name == "expire")
+                    throw Exception("config", "Can't use reserved name expire in setRule");
+                  backupSetRule[name] = rule;
+                  time_t distance = stot(splittedRule[1]);
+                  time_t keep = stot(splittedRule[2]);
+                  ruleSet[name] = pair<time_t, time_t>(distance, keep);
+                }
+
+              // find time for nextBackup for every backupSet
+              map<string, DateTime> nextBackup;
+
+              // set default time for next Backup to now
+              for (auto rule : ruleSet)
+                nextBackup[rule.first] = imageTime;
+
+              // find time for next backup
+              //
+              for (const Image& image : validImageList)
+                {
+                  if (image.series != "expire")
+                    {
+                      string s = image.series;
+                      if (ruleSet.count(s) > 0) // rule for set exists?
+                        {
+                          if (nextBackup[s] < image.time + ruleSet[s].first)
+                            nextBackup[s] = image.time + ruleSet[s].first;
+                        }
+                    }
+                }
+
+              // find backupSet that
+              //      needs backup
+              //      has longest time to keep
+              currentSet = "";
+              for (auto rule : ruleSet)
+                {
+                  string name = rule.first;
+                  if (nextBackup[name] <= imageTime)
+                    {
+                      backupNow = true;
+                      if (currentSet.empty())
+                        currentSet = name;
+                      else if (ruleSet[name].second > ruleSet[currentSet].second)
+                        currentSet = name;
+                    }
                 }
             }
-
-          string userExcludeFile = conf.getString("userExcludeFile");
-          if (!userExcludeFile.empty())
-            {
-              userExcludeFile = path + userExcludeFile;
-              string getExcludeFileCommand = rshCommand;
-              getExcludeFileCommand += " \" if [ -f '" + userExcludeFile + "' ]; then ";
-              getExcludeFileCommand += " cat '" + userExcludeFile + "' ; fi \"";
-              // cout << getExcludeFileCommand << endl;
-              int rc;
-              Strings excludes2 = myPopen(getExcludeFileCommand, rc, debug);
-              if (rc == 0)
-                excluded += excludes2;
-            }
-
-          if (!dryRun)
-            strings2File(excluded, imageFullName + "/exclude");
-
-          // rsync image
-
-          if (!remoteShell.empty())
-            rsyncCmd += " -e \'" + remoteShell + "\' ";
-
-          rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
-          if (!referenceImage.empty())
-            rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
-          rsyncCmd += userAtHost + ":" + path + " ";
-          rsyncCmd += imageFullName + "/tree";
-        } // shell mode
-      else
-        {
-          // cout << "USING SERVERMODE" << endl;
-
-          if (!dryRun)
-            strings2File(excluded, imageFullName + "/exclude");
-
-          rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
-          if (!referenceImage.empty())
-            rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
-          rsyncCmd += conf.getString("server") + "::" + path + " ";
-          rsyncCmd += imageFullName + "/tree";
         }
 
-      debugPrint("Action: " + rsyncCmd);
+      verbosePrint("backup to \"" + imageFullName + "\"");
+      verbosePrint("backup set is \"" + currentSet + "\"");
 
-      vector<string> backupResult;
-      if (!dryRun)
+      if (backupNow)
         {
-          verbosePrint("syncing (" + rsyncCmd + ")");
-          int rc;
-          backupResult = myPopen(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
-          if (rc == 0 ||
-              rc == 24 || // "no error" or "vanished source files" (ignored)
-              rc == 6144) // workaround for wrong exit code ??!!
+          // find reference image
+          string referenceImage;
+          if (!fullImage)
             {
-              unlink(errorfile.c_str());
+              if (validImageList.empty())
+                throw Exception("backupVault", "no reference image found");
+              // last image is newest image
+              referenceImage = validImageList.back().name;
+            }
+
+          doBackup(vault, imageFullName, referenceImage, conf);
+
+          if (!dryRun)
+            {
               string lastLink = vaultpath + "/last";
               unlink(lastLink.c_str());
               symlink(imageFullName.c_str(), lastLink.c_str());
-              long int st = 0;
-              long int sc = 0;
-              for (auto bl : backupResult)
-                {
-                  if (bl.substr(0, 15) == "Total file size")
-                    st = getNumber(bl);
-                  else if (bl.substr(0, 27) == "Total transferred file size")
-                    sc = getNumber(bl);
-                }
-              // sizes[vault] = pair<long int, long int>(st, sc);
-              sizes[vault] = Sizes(st, sc);
-              //  cout << vault << " " << st << " || " << sc << endl;
-            }
-          else
-            throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc) + ")");
-        }
-      else
-        cout << "Not executing " << rsyncCmd << endl;
 
-      string rule;
-      createExpireFile(imageFullName, conf, rule);
+              DateTime expireTime;
+              string rule;
+              if (currentSet == "expire")
+                expireTime = getExpireDate(imageTime, conf, rule);
+              else
+                {
+                  expireTime = imageTime + ruleSet[currentSet].second;
+                  rule = backupSetRule[currentSet];
+                }
+
+              ofstream expireFile(imageFullName + "/expires");
+              expireFile << currentSet << "-" << expireTime.getString('m') << endl;
+              expireFile << rule << endl;
+            }
+        }
+      else if (!quiet)
+        cout << "    no backup needed now" << endl;
     }
   catch (Exception ex)
     {
@@ -394,93 +517,64 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
 
   string vaultpath = findVault(vault);
 
-  Strings dirlist; // list of subdirectories
-  dirList(vaultpath, dirlist);
+  Images imagelist = findImages(vaultpath, conf, true);
 
-  Strings validImages;
-  Strings invalidImages;
-  string imgname = getImageName(conf);
-
-  for (unsigned int i = 0; i < dirlist.size(); ++i)
+  string lastValidImage;
+  for (Image image : imagelist)
     {
-      FileName fn(dirlist[i]);
-      if (startsWith(fn.getName(), imgname)) // dir is image ?
-        {
-          debugPrint(dirlist[i]);
-
-          DateTime t = imageDate(dirlist[i]);
-
-          if (t != now) // ignore just created image
-            {
-              if (!isValidImage(dirlist[i])) // invalid image?
-                {
-                  invalidImages.push_back(dirlist[i]);
-                  debugPrint("- invalid image");
-                }
-              else
-                {
-                  validImages.push_back(dirlist[i]);
-                  debugPrint("- valid image");
-                }
-            }
-          else
-            debugPrint("- current image - ignored");
-        }
+      if (image.valid)
+        lastValidImage = image.name;
     }
 
-  for (unsigned int i = 0; i < invalidImages.size(); ++i)
+  for (Image image : imagelist)
     {
-      try
+      debugPrint(image.name);
+
+      DateTime imageTime = imageDate(image.name);
+
+      if (imageTime != now &&          // ignore just created image
+          image.name != lastValidImage // ignore last valid image
+         )
         {
-          DateTime t = imageDate(invalidImages[i]);
-          DateTime expireTime = t + stot(conf.getString("expireFailedImage"));
+          DateTime expireTime;
+          string expireRule;
+          if (!image.valid) // invalid image?
+            {
+              expireTime = imageTime + stot(conf.getString("expireFailedImage"));
+              expireRule = "invalid image: " + conf.getString("expireFailedImage");
+              debugPrint("- invalid image");
+            }
+          else
+            {
+              debugPrint("- valid image");
+              expireTime = image.expire;
+              expireRule = image.expireRule;
+            }
+
           if (debug)
             {
-              cout << "image: " << t.getString('h') << "  expire: " << expireTime.getString('h') << endl;
-              cout << " now: " << now.getString('h') << endl;
+              cout << "    image: " << imageTime.getString('h') << endl;
+              cout << "      expire: " << expireTime.getString('h') << " " << expireRule << endl;
+              cout << "      now: " << now.getString('h') << endl;
             }
+
           if (expireTime < now)
             {
               if (!quiet)
-                cout << "  removing invalid image " << invalidImages[i] << endl;
-              if (removeDir(invalidImages[i]) != 0)
-                cout << "Error removing " <<  invalidImages[i] << endl;
+                cout << "  removing image " << image.name << endl;
+              try
+                {
+                  if (removeDir(image.name) != 0)
+                    cout << "Error removing " <<  image.name << endl;
+                }
+              catch (Exception ex)
+                {
+                  cerr << "Exception: " << ex.what() << endl;
+                }
             }
         }
-      catch (Exception ex)
-        {
-          cerr << "Exception: " << ex.what() << endl;
-        }
-    }
-
-  sort(validImages.begin(), validImages.end()); // lexicographical order == temporal order
-  for (unsigned int i = 0;
-       i < validImages.size() - 1; // never expire latest image
-       ++i)
-    {
-      try
-        {
-          string imageName = validImages[i];
-          DateTime imageTime = imageDate(imageName);
-          string rule;
-          DateTime expireTime = expireDate(imageName, conf, rule);
-
-          if (debug)
-            {
-              cout << "image: " << imageTime.getString('h') << "  expire: " << expireTime.getString('h') << endl;
-              cout << " now: " << now.getString('h') << endl;
-            }
-          if (now > expireTime)
-            {
-              if (!quiet)
-                cout << "removing " << imageName << " rule=" << rule << endl;
-              removeDir(imageName);
-            }
-        }
-      catch (Exception ex)
-        {
-          cerr << "Exception: " << ex.what() << endl;
-        }
+      else
+        debugPrint("- current image - ignored");
     }
 }
 
@@ -544,20 +638,10 @@ int main(int argc, char* argv[])
       createLock(lockFile);
 
       DateTime imageTime = DateTime::now();
+
       string logSizeFile = conf.getString("logSize");
-      if (!logSizeFile.empty() && fileExists(logSizeFile))
-        {
-          vector<string> ss;
-          file2Strings(logSizeFile, ss);
-          for (auto s : ss)
-            {
-              unsigned int i = 0;
-              string v = getWord(s, i);
-              long int s1 = getLongInt(s, i);
-              long int s2 = getLongInt(s, i);
-              sizes[v] = Sizes(s1, s2);
-            }
-        }
+      if (!logSizeFile.empty())
+        readSizes(logSizeFile);
 
       vector<string> vaults;
       string groupname = "group_" + vault;
@@ -567,10 +651,10 @@ int main(int argc, char* argv[])
         vaults.push_back(vault);
 
       if (doBackup)
-        for (unsigned int i = 0; i < vaults.size(); ++i)
+        for (string vault : vaults)
           {
-            backupVault(vaults[i], conf, imageTime, fullImage);
-	    writeSizes(logSizeFile);
+            backupVault(vault, conf, imageTime, fullImage);
+            writeSizes(logSizeFile);
           }
 
       if (doExpire)

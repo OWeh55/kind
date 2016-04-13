@@ -15,4 +15,5 @@ void createExpireFile(const std::string& image,
 DateTime expireDate(const std::string& image,
                     const KindConfig& conf, std::string& rule);
 
+void stringToDate(const std::string& dateString, DateTime& t, std::string& label);
 #endif

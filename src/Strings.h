@@ -1,6 +1,7 @@
 #ifndef STRINGS_H
 #define STRINGS_H
 
+#include <string>
 #include <vector>
 
 class Strings: public std::vector<std::string>

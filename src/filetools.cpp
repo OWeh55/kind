@@ -162,11 +162,8 @@ void removeLock(const std::string& lockfilename)
   unlink(lockfilename.c_str());
 }
 
-extern void debugPrint(const std::string &s);
-
 int removeDir(const std::string& path)
 {
-  debugPrint("removeDir " + path);
   DIR* d = opendir(path.c_str());
 
   int r = -1;
@@ -178,33 +175,23 @@ int removeDir(const std::string& path)
       while (!r && (p = readdir(d)))
         {
           int r2 = 0;
-	  std::string fn = p->d_name;
+          std::string fn = p->d_name;
           if (fn != "." && fn != "..")
             {
               fn = path + "/" + fn;
-              debugPrint("-- " + fn);
               struct stat statbuf;
               if (lstat(fn.c_str(), &statbuf) == 0)
                 {
                   if (S_ISLNK(statbuf.st_mode))
-                    {
-                      debugPrint("Remove link " + fn);
-                      r2 = unlink(fn.c_str());
-                    }
+                    r2 = unlink(fn.c_str());
                   else if (S_ISDIR(statbuf.st_mode))
-                    {
-                      debugPrint("Remove dir " + fn);
-                      r2 = removeDir(fn);
-                    }
+                    r2 = removeDir(fn);
                   else
-                    {
-                      debugPrint("Remove file " + fn);
-                      r2 = unlink(fn.c_str());
-                    }
+                    r2 = unlink(fn.c_str());
                 }
               else
                 {
-		  std::cout << "stat(" << fn << ") failed" << std::endl;
+                  std::cout << "stat(" << fn << ") failed" << std::endl;
                   // we assume "file" here
                   r2 = unlink(fn.c_str());
                 }
@@ -215,10 +202,7 @@ int removeDir(const std::string& path)
     }
 
   if (r == 0)
-    {
-      debugPrint("Remove Dir itself " + path);
-      r = rmdir(path.c_str());
-    }
+    r = rmdir(path.c_str());
 
   return r;
 }

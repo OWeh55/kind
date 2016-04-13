@@ -30,6 +30,25 @@ DateTime stringToDate(const string& dateString)
   return DateTime(Y, M, D, h, m, s);
 }
 
+void stringToDate(const string& dateString, DateTime& t, string& label)
+{
+  Strings ss;
+  split(dateString, ss, '-');
+  if (ss.size() < 5)
+    throw Exception("stringToDate", "date format invalid");
+  label = ss[0];
+  int Y = stoi(ss[1]);
+  int M = stoi(ss[2]);
+  int D = stoi(ss[3]);
+  int h = stoi(ss[4]);
+  int m = 0, s = 0;
+  if (ss.size() > 5) // longImageName
+    m = stoi(ss[5]);
+  if (ss.size() > 6)
+    s = stoi(ss[6]);
+  t = DateTime(Y, M, D, h, m, s);
+}
+
 DateTime imageDate(const string& image)
 {
   FileName fn(image);
@@ -150,4 +169,3 @@ DateTime expireDate(const string& image, const KindConfig& conf, string& rule)
     rule = s[1];
   return stringToDate(s[0]);
 }
-
