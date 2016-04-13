@@ -391,7 +391,7 @@ void backupVault(const string& vault,
 
       if (conf.hasKey("setRules"))
         {
-	  readSetRules(conf,ruleSet,backupSetRule);
+          readSetRules(conf, ruleSet, backupSetRule);
           if (!ruleSet.empty())
             {
               backupNow = false;
@@ -400,8 +400,8 @@ void backupVault(const string& vault,
               map<string, DateTime> nextBackup;
 
               // find time for next backup
-              // set default time for next Backup to now 
-	      //    (if there is no image yet)
+              // set default time for next Backup to now
+              //    (if there is no image yet)
               for (auto rule : ruleSet)
                 nextBackup[rule.first] = imageTime;
 
@@ -439,7 +439,7 @@ void backupVault(const string& vault,
 
       verbosePrint("backup to \"" + imageFullName + "\"");
       if (!currentSet.empty())
-	verbosePrint("backup set is \"" + currentSet + "\"");
+        verbosePrint("backup set is \"" + currentSet + "\"");
 
       if (backupNow)
         {
@@ -457,12 +457,12 @@ void backupVault(const string& vault,
 
           if (!dryRun)
             {
-	      // set symlink to last image
+              // set symlink to last image
               string lastLink = vaultpath + "/last";
               unlink(lastLink.c_str());
               symlink(imageFullName.c_str(), lastLink.c_str());
 
-	      // write expire date to file
+              // write expire date to file
               DateTime expireTime;
               string rule;
               if (currentSet == "expire")

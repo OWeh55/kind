@@ -12,27 +12,27 @@ using namespace std;
 
 void debugPrint(const std::string& s);
 
-void readSetRules(const KindConfig &conf,
-		    map<string, pair<time_t, time_t> > &ruleSet,
-		    map<string, string> &backupSetRule)
+void readSetRules(const KindConfig& conf,
+                  map<string, pair<time_t, time_t> >& ruleSet,
+                  map<string, string>& backupSetRule)
 {
   Strings setRules = conf.getStrings("setRules");
   if (!setRules.empty())
     {
       for (const string& rule : setRules)
-	{
-	  Strings splittedRule;
-	  split(rule, splittedRule, ':');
-	  if (splittedRule.size() != 3)
-	    throw Exception("config", "Error in setRule: " + rule);
-	  string name = splittedRule[0];
-	  if (name == "expire")
-	    throw Exception("config", "Use of reserved name expire in setRule is forbidden");
-	  backupSetRule[name] = rule;
-	  time_t distance = stot(splittedRule[1]);
-	  time_t keep = stot(splittedRule[2]);
-	  ruleSet[name] = pair<time_t, time_t>(distance, keep);
-	}
+        {
+          Strings splittedRule;
+          split(rule, splittedRule, ':');
+          if (splittedRule.size() != 3)
+            throw Exception("config", "Error in setRule: " + rule);
+          string name = splittedRule[0];
+          if (name == "expire")
+            throw Exception("config", "Use of reserved name expire in setRule is forbidden");
+          backupSetRule[name] = rule;
+          time_t distance = stot(splittedRule[1]);
+          time_t keep = stot(splittedRule[2]);
+          ruleSet[name] = pair<time_t, time_t>(distance, keep);
+        }
     }
 }
 

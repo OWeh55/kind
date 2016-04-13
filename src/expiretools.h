@@ -5,9 +5,9 @@
 #include "DateTime.h"
 #include "KindConfig.h"
 
-void readSetRules(const KindConfig &conf,
-		  std::map<std::string, std::pair<time_t, time_t> > &ruleSet,
-		  std::map<std::string, std::string> &backupSetRule);
+void readSetRules(const KindConfig& conf,
+                  std::map<std::string, std::pair<time_t, time_t> >& ruleSet,
+                  std::map<std::string, std::string>& backupSetRule);
 
 DateTime imageDate(const std::string& image);
 

@@ -503,7 +503,7 @@ void doBackup(const string& vault,
 # 248 "kind.ag"
       string userAtHost = conf.getString("user") + "@" +
 # 249 "kind.ag"
-                          conf.getString("host");
+      conf.getString("host");
 # 250 "kind.ag"
       string rshCommand = remoteShell;
 # 251 "kind.ag"
@@ -663,9 +663,9 @@ void doBackup(const string& vault,
 # 328 "kind.ag"
       if (rc == 0 ||
 # 329 "kind.ag"
-          rc == 24 || // "no error" or "vanished source files" (ignored)
+      rc == 24 || // "no error" or "vanished source files" (ignored)
 # 330 "kind.ag"
-          rc == 6144) // workaround for wrong exit code ??!!
+      rc == 6144) // workaround for wrong exit code ??!!
 # 331 "kind.ag"
         {
 # 332 "kind.ag"
@@ -793,7 +793,7 @@ void backupVault(const string& vault,
 # 393 "kind.ag"
         {
 # 394 "kind.ag"
-	  readSetRules(conf,ruleSet,backupSetRule);
+          readSetRules(conf, ruleSet, backupSetRule);
 # 395 "kind.ag"
           if (!ruleSet.empty())
 # 396 "kind.ag"
@@ -811,9 +811,9 @@ void backupVault(const string& vault,
 # 402 "kind.ag"
               // find time for next backup
 # 403 "kind.ag"
-              // set default time for next Backup to now 
+              // set default time for next Backup to now
 # 404 "kind.ag"
-	      //    (if there is no image yet)
+              //    (if there is no image yet)
 # 405 "kind.ag"
               for (auto rule : ruleSet)
 # 406 "kind.ag"
@@ -889,7 +889,7 @@ void backupVault(const string& vault,
 # 441 "kind.ag"
       if (!currentSet.empty())
 # 442 "kind.ag"
-	verbosePrint("backup set is \"" + currentSet + "\"");
+        verbosePrint("backup set is \"" + currentSet + "\"");
 # 443 "kind.ag"
 
 # 444 "kind.ag"
@@ -925,7 +925,7 @@ void backupVault(const string& vault,
 # 459 "kind.ag"
             {
 # 460 "kind.ag"
-	      // set symlink to last image
+              // set symlink to last image
 # 461 "kind.ag"
               string lastLink = vaultpath + "/last";
 # 462 "kind.ag"
@@ -935,7 +935,7 @@ void backupVault(const string& vault,
 # 464 "kind.ag"
 
 # 465 "kind.ag"
-	      // write expire date to file
+              // write expire date to file
 # 466 "kind.ag"
               DateTime expireTime;
 # 467 "kind.ag"
@@ -1035,7 +1035,7 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
 # 514 "kind.ag"
       if (imageTime != now &&          // ignore just created image
 # 515 "kind.ag"
-          image.name != lastValidImage // ignore last valid image
+      image.name != lastValidImage // ignore last valid image
 # 516 "kind.ag"
          )
 # 517 "kind.ag"
@@ -1153,15 +1153,15 @@ void usage()
   exit(1);
 }
 
-void error(const string &msg)
+void error(const string& msg)
 {
   cout << endl << ag_programName << " - error: " << msg << endl << endl;
   usage();
 }
 
-int ptoi(const char *para)
+int ptoi(const char* para)
 {
-  char *end;
+  char* end;
   int res = strtol(para, &end, 10);
   if (end == para)
     error(string("no int: ") + para);
@@ -1170,9 +1170,9 @@ int ptoi(const char *para)
   return res;
 }
 
-double ptod(const char *para)
+double ptod(const char* para)
 {
-  char *end;
+  char* end;
   double res = strtod(para, &end);
   if (end == para)
     error(string("no double: ") + para);
@@ -1181,15 +1181,15 @@ double ptod(const char *para)
   return res;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-bool fullImage = false;
-string masterConfig = "";
-bool doBackup = false;
-bool doExpire = false;
-bool listConfig = false;
+  bool fullImage = false;
+  string masterConfig = "";
+  bool doBackup = false;
+  bool doExpire = false;
+  bool listConfig = false;
 
-string vault = "";
+  string vault = "";
   static struct option ag_long_options[] =
   {
     {"full", no_argument, 0, 'f' },
@@ -1218,44 +1218,44 @@ string vault = "";
           error("Expecting option parameter");
           break;
         case 'f':
-              fullImage = true;
-              break;
+          fullImage = true;
+          break;
 
         case 'c':
-              masterConfig = optarg;
-              break;
+          masterConfig = optarg;
+          break;
 
         case 'B':
-              doBackup = true;
-              break;
+          doBackup = true;
+          break;
 
         case 'E':
-              doExpire = true;
-              break;
+          doExpire = true;
+          break;
 
         case 'C':
-              listConfig = true;
-              break;
+          listConfig = true;
+          break;
 
         case 'D':
-              dryRun = true;
-              break;
+          dryRun = true;
+          break;
 
         case 'v':
-              verbose = true;
-              break;
+          verbose = true;
+          break;
 
         case 'd':
-              debug = true;
-              break;
+          debug = true;
+          break;
 
         case 'q':
-              quiet = true;
-              break;
+          quiet = true;
+          break;
 
         case 'h':
-              usage();
-              break;
+          usage();
+          break;
 
         default:
           error("error in options");
@@ -1265,7 +1265,7 @@ string vault = "";
     vault = argv[optind++];
   else error("Parameter vault_or_group needed");
 
-/*AppGen:MainEnd*/
+  /*AppGen:MainEnd*/
 # 564 "kind.ag"
 
 # 565 "kind.ag"
