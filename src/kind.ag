@@ -389,7 +389,7 @@ void backupVault(const string& vault,
       map<string, pair<time_t, time_t> > ruleSet;
       map<string, string> backupSetRule;
 
-      if (conf.hasKey("setRules"))
+      if (conf.hasKey("setRule"))
         {
           readSetRules(conf, ruleSet, backupSetRule);
           if (!ruleSet.empty())
