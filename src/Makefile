@@ -34,6 +34,9 @@ ASTYLE_OPT = --style=gnu --unpad-paren --pad-header --pad-oper --indent-namespac
 kind: $(OBJECTS)
 	$(CXX) $(LOPT) $(LIBRARY) -o kind $(OBJECTS) $(LIBS)
 
+stot:	stot.o stringtools.o Lexer.o
+	$(CXX) $(LOPT) $(LIBRARY) -o stot stot.o stringtools.o Lexer.o $(LIBS)	
+
 static: kind
 	$(CXX) $(LOPT) $(LIBRARY) -static -o kind_static $(OBJECTS) $(LIBS)
 	strip kind_static

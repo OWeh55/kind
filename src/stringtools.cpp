@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Exception.h"
 #include "stringtools.h"
+#include "Lexer.h"
 
 using namespace std;
 
@@ -137,10 +138,12 @@ string getWord(const string& s, unsigned int& i)
   return is;
 }
 
+#if 0
 time_t stot(const string& s)
 {
   unsigned int i = 0;
   skipWS(s, i);
+
   int val = getInt(s, i);
   if (i >= s.length())
     return val;
@@ -163,7 +166,54 @@ time_t stot(const string& s)
     return val * 60 * 60 * 24 * 365;
   throw Exception("Parse time", "unknown time unit " + unit);
 }
+#else
+time_t stot(const string& str)
+{
+  Lexer s(str);
+  time_t value = 0;
+  while (!s.empty())
+    {
+      bool minus = false;
+      if (s.type == Lexer::singlecharacter)
+        {
+          if (s.token == "-")
+            minus = true;
+          else if (s.token != "+")
+            throw Exception("string to time", "expected sign");
+          s.nextToken();
+        }
+      time_t thisValue = s.getInt();
 
+      string unit = "s";
+      if (s.type == Lexer::identifier)
+        unit = s.getWord();
+      if (unit.size() > 1 && unit[unit.size() - 1] == 's')
+        unit.resize(unit.size() - 1);
+      if (unit == "s" || unit == "sec" || unit == "second")
+        thisValue = thisValue;
+      else if (unit == "min" || unit == "minute")
+        thisValue = thisValue * 60;
+      else if (unit == "h" || unit == "hour")
+        thisValue = thisValue * 60 * 60;
+      else if (unit == "d" || unit == "day")
+        thisValue = thisValue * 60 * 60 * 24;
+      else if (unit == "week")
+        thisValue = thisValue * 60 * 60 * 24 * 7;
+      else if (unit == "month")
+        thisValue = thisValue * 60 * 60 * 24 * 30;
+      else if (unit == "a"  || unit == "year")
+        thisValue = thisValue * 60 * 60 * 24 * 365;
+      else
+        throw  Exception("string to time", "unknown unit " + unit);
+      if (!minus)
+        value += thisValue;
+      else
+        value -= thisValue;
+    }
+  return value;
+}
+
+#endif
 long int getNumber(const string& l)
 {
   // read *all* digits from string l ignoring all other characters
