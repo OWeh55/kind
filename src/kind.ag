@@ -519,6 +519,9 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
           string expireRule;
           if (!image.valid) // invalid image?
             {
+              time_t expPeriod = stot(conf.getString("expireFailedImage"));
+              if (expPeriod < 0)
+                throw Exception("expireFailedImage", "Time period must be positive");
               expireTime = imageTime + stot(conf.getString("expireFailedImage"));
               expireRule = "invalid image: " + conf.getString("expireFailedImage");
               debugPrint("- invalid image");

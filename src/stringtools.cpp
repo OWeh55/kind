@@ -138,37 +138,17 @@ string getWord(const string& s, unsigned int& i)
   return is;
 }
 
-#if 0
-time_t stot(const string& s)
-{
-  unsigned int i = 0;
-  skipWS(s, i);
-
-  int val = getInt(s, i);
-  if (i >= s.length())
-    return val;
-  string unit = getWord(s, i);
-  if (unit.back() != 's')
-    unit += 's';
-  if (unit == "secs")
-    return val;
-  if (unit == "mins")
-    return val * 60;
-  if (unit == "hours")
-    return val * 60 * 60;
-  if (unit == "days")
-    return val * 60 * 60 * 24;
-  if (unit == "weeks")
-    return val * 60 * 60 * 24 * 7;
-  if (unit == "months")
-    return val * 60 * 60 * 24 * 30;
-  if (unit == "years")
-    return val * 60 * 60 * 24 * 365;
-  throw Exception("Parse time", "unknown time unit " + unit);
-}
-#else
 time_t stot(const string& str)
 {
+  // converts a string describing time periods to
+  // time in seconds
+  // numbers without units are in seconds
+  // all given values are accumulated
+  // use of sign is optional
+  // 1 hour
+  // 3 hours 5 minutes
+  // 1 day -5 minutes
+  // 25 -3
   Lexer s(str);
   time_t value = 0;
   while (!s.empty())
@@ -187,8 +167,10 @@ time_t stot(const string& str)
       string unit = "s";
       if (s.type == Lexer::identifier)
         unit = s.getWord();
+      //eliminate plural s to simplify comparisn
       if (unit.size() > 1 && unit[unit.size() - 1] == 's')
         unit.resize(unit.size() - 1);
+      // check all units and common abbreviations
       if (unit == "s" || unit == "sec" || unit == "second")
         thisValue = thisValue;
       else if (unit == "min" || unit == "minute")
@@ -213,7 +195,6 @@ time_t stot(const string& str)
   return value;
 }
 
-#endif
 long int getNumber(const string& l)
 {
   // read *all* digits from string l ignoring all other characters

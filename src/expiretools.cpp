@@ -31,6 +31,8 @@ void readSetRules(const KindConfig& conf,
           backupSetRule[name] = rule;
           time_t distance = stot(splittedRule[1]);
           time_t keep = stot(splittedRule[2]);
+          if (distance < 0 || keep < 0)
+            throw Exception("SetRules", "Times must be positive");
           ruleSet[name] = pair<time_t, time_t>(distance, keep);
         }
     }
@@ -105,6 +107,8 @@ void parseRule(string rule,
   string ts = p.getAll();
   substitute(ts, ',', ' ');
   exptime = stot(ts);
+  if (exptime < 0)
+    throw Exception("ExpireRule " + rule, "Time period must be positive");
 }
 
 
