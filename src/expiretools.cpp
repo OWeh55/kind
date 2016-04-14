@@ -16,7 +16,7 @@ void readSetRules(const KindConfig& conf,
                   map<string, pair<time_t, time_t> >& ruleSet,
                   map<string, string>& backupSetRule)
 {
-  Strings setRules = conf.getStrings("setRules");
+  Strings setRules = conf.getStrings("setRule");
   if (!setRules.empty())
     {
       for (const string& rule : setRules)
