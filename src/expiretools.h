@@ -5,9 +5,22 @@
 #include "DateTime.h"
 #include "KindConfig.h"
 
+struct SetRule
+{
+  std::string name;
+  time_t distance;
+  time_t keep;
+  std::string rule;
+  bool operator<(const SetRule& rhs) const
+  {
+    // !!! trick: use inverse order
+    return keep > rhs.keep;
+  }
+};
+
 void readSetRules(const KindConfig& conf,
-                  std::map<std::string, std::pair<time_t, time_t> >& ruleSet,
-                  std::map<std::string, std::string>& backupSetRule);
+                  std::map<std::string, int >& setIdx,
+                  std::vector<SetRule>& backupSetRule);
 
 DateTime imageDate(const std::string& image);
 

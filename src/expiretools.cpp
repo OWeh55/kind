@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 
 #include "Exception.h"
 #include "Lexer.h"
@@ -13,28 +14,39 @@ using namespace std;
 void debugPrint(const std::string& s);
 
 void readSetRules(const KindConfig& conf,
-                  map<string, pair<time_t, time_t> >& ruleSet,
-                  map<string, string>& backupSetRule)
+                  std::map<std::string, int >& setIdx,
+                  std::vector<SetRule>& backupSetRule)
 {
   Strings setRules = conf.getStrings("setRule");
+  setIdx.clear();
+  backupSetRule.clear();
   if (!setRules.empty())
     {
       for (const string& rule : setRules)
         {
+          // read rule and store to vector
           Strings splittedRule;
           split(rule, splittedRule, ':');
           if (splittedRule.size() != 3)
             throw Exception("config", "Error in setRule: " + rule);
           string name = splittedRule[0];
           if (name == "expire")
-            throw Exception("config", "Use of reserved name expire in setRule is forbidden");
-          backupSetRule[name] = rule;
-          time_t distance = stot(splittedRule[1]);
-          time_t keep = stot(splittedRule[2]);
-          if (distance < 0 || keep < 0)
+            throw Exception("config", "Use of reserved name >>expire<< in setRule is forbidden");
+          SetRule s;
+          s.rule = rule;
+          s.name = name;
+          s.distance = stot(splittedRule[1]);
+          s.keep = stot(splittedRule[2]);
+          if (s.distance < 0 || s.keep < 0)
             throw Exception("SetRules", "Times must be positive");
-          ruleSet[name] = pair<time_t, time_t>(distance, keep);
+          backupSetRule.push_back(s);
         }
+      // sort backupSets by time to keep
+      sort(backupSetRule.begin(), backupSetRule.end());
+
+      // create map for index
+      for (unsigned int i = 0; i < backupSetRule.size(); ++i)
+        setIdx[backupSetRule[i].name] = i;
     }
 }
 
