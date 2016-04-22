@@ -265,7 +265,11 @@ void doBackup(const string& vault,
           int rc;
           Strings excludedFiles = myPopen(excludeCommand, rc, debug);
           if (rc > 0)
-            throw Exception("Find exludes", "Search for excludes failed");
+            {
+              // return Strings should contain error messages
+              strings2File(excludedFiles, errorfile);
+              throw Exception("Find exludes", "Search for excludes failed");
+            }
 
           for (unsigned int i = 0; i < excludedFiles.size(); ++i)
             {
