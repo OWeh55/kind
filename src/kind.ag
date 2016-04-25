@@ -35,18 +35,18 @@
   para: vault_or_group, required, string, vault, Vault to backup
   %% Beschreibung der Optionen
   % kurz-Option, lang-Option, Typ, Variablenname, Erklärung, Default-Wert
-
-  opt: f, full, void, fullImage, Force full image == initial backup, false
   opt: c, masterconfig, string, masterConfig, Master config file, ""
   opt2: if not given or empty kind looks for
   opt2:   /etc/kind/master.conf
   opt2:   /ffp/etc/kind/master.conf
+  opt: f, full, void, fullImage, Force full image == initial backup, false
   opt: B, backup, void, doBackup, Backup, false
   opt: E, expire, void, doExpire, Expire, false
   opt: C, listconfig, void, listConfig, Show configuration, false
   opt2:   if none of backup, expire or listconfig is specified,
   opt2:   backup and expire is assumed.
   opt: D, dryrun, Void, dryRun, Dry run (no real backup), false
+  opt: F, forcebackup, string, forcedBackupSet, Create image for specified backup set, ""
   opt: v, verbose, Void, verbose,  Verbose,  false
   opt: d, debug, Void, debug, Debug output of many data, false
   opt: q, quiet, Void, quiet, Be quiet - no messages, false
@@ -149,19 +149,32 @@ void readVaultConfig(const string& vault, KindConfig& conf)
   conf.addFile(vaultConfigName);
 }
 
-string getImageName(const KindConfig& conf)
+string getImageName(const KindConfig& conf,
+                    const string& vaultPath,
+                    const DateTime& imageTime)
 {
   bool nonPortable = false;
-  string res = conf.getString("imageName");
-  for (unsigned int i = 0; !nonPortable && i < res.size(); ++i)
+  string imageName = conf.getString("imageName");
+  for (unsigned int i = 0; !nonPortable && i < imageName.size(); ++i)
     {
-      char c = res[i];
+      char c = imageName[i];
       if (!isalnum(c) && c != '.' && c != '_')
         nonPortable = true;
     }
   if (nonPortable)
-    throw Exception("getImageName", "Invalid character in image name " + res);
-  return res;
+    throw Exception("getImageName", "Invalid character in image name " + imageName);
+
+  if (!imageName.empty())
+    imageName += '-';
+
+  string imageFullName =  vaultPath + "/" + imageName ;
+
+  if (conf.getBool("longImageName"))
+    imageFullName += imageTime.getString('m');
+  else
+    imageFullName += imageTime.getString('s');
+
+  return imageFullName;
 }
 
 Images findImages(const string& vaultpath, const KindConfig& conf, bool all)
@@ -174,7 +187,7 @@ Images findImages(const string& vaultpath, const KindConfig& conf, bool all)
   for (string dir : dirs)
     {
       FileName fn(dir);
-      string imgname = getImageName(conf);
+      string imgname = conf.getString("imageName");
       if (startsWith(fn.getName(), imgname))
         {
           debugPrint("Checking " + dir);
@@ -357,7 +370,8 @@ void doBackup(const string& vault,
 void backupVault(const string& vault,
                  KindConfig conf /*Copy!*/ ,
                  const DateTime& imageTime,
-                 bool fullImage)
+                 bool fullImage,
+                 const string& forcedBackupSet)
 {
   if (!quiet)
     cout << DateTime::now().getString('h') << ": Backup of vault " << vault << endl;
@@ -368,24 +382,15 @@ void backupVault(const string& vault,
       readVaultConfig(vault, conf);
 
       // where to store
-      string vaultpath = findVault(vault);
+      string vaultPath = findVault(vault);
 
       // image path
-      string imageName = getImageName(conf);
-      if (!imageName.empty())
-        imageName += '-';
-
-      string imageFullName =  vaultpath + "/" + imageName ;
-
-      if (conf.getBool("longImageName"))
-        imageFullName += imageTime.getString('m');
-      else
-        imageFullName += imageTime.getString('s');
+      string imageFullName = getImageName(conf, vaultPath, imageTime);
 
       bool backupNow = true;
 
       // existing images
-      Images validImageList = findImages(vaultpath, conf, false);
+      Images validImageList = findImages(vaultPath, conf, false);
       string currentSet = "expire"; // we are not using backupSets
 
       // check if we are using backup sets
@@ -399,51 +404,64 @@ void backupVault(const string& vault,
           readSetRules(conf, setIdx, backupSetRule);
           if (!setIdx.empty())
             {
-              backupNow = false;
-
-              // find time for nextBackup for every backupSet
-              // defaults to now == imageTime;
-              vector<DateTime> nextBackup(backupSetRule.size(), imageTime);
-
-              // find time for next backup
-
-              for (const Image& image : validImageList)
+              if (forcedBackupSet.empty())
                 {
-                  if (image.series != "expire")
+                  backupNow = false;
+
+                  // find time for nextBackup for every backupSet
+                  // defaults to now == imageTime;
+                  vector<DateTime> nextBackup(backupSetRule.size(), imageTime);
+
+                  // find time for next backup
+
+                  for (const Image& image : validImageList)
                     {
-                      string s = image.series;
-                      if (setIdx.count(s) > 0) // rule for set exists?
+                      if (image.series != "expire")
                         {
-                          int rIdx = setIdx[s];
-                          // image is valid for this and "lower" backupSets
-                          for (unsigned int i = rIdx; i < backupSetRule.size(); ++i)
-                            if (nextBackup[i] < image.time + backupSetRule[i].distance)
-                              nextBackup[i] =  image.time + backupSetRule[i].distance;
+                          string s = image.series;
+                          if (setIdx.count(s) > 0) // rule for set exists?
+                            {
+                              int rIdx = setIdx[s];
+                              // image is valid for this and "lower level" backupSets
+                              for (unsigned int i = rIdx; i < backupSetRule.size(); ++i)
+                                if (nextBackup[i] < image.time + backupSetRule[i].distance)
+                                  nextBackup[i] =  image.time + backupSetRule[i].distance;
+                            }
+                        }
+                    }
+                  if (debug)
+                    for (unsigned int i = 0; i < backupSetRule.size(); ++i)
+                      cout << "       Next backup for " << backupSetRule[i].name << " at " <<  nextBackup[i].getString('h') << endl;
+
+                  // find backupSet that
+                  //    - needs backup
+                  //    - has longest time to keep
+                  // because of ordered list backupSetRule this is the first set, that need
+
+                  currentSet = "";
+                  for (unsigned int i = 0; i < backupSetRule.size() && currentSet.empty(); ++i)
+                    {
+                      string name = backupSetRule[i].name;
+                      if (nextBackup[i] <= imageTime + 5) // small offset of 5s for "jitter"
+                        {
+                          backupNow = true;
+                          currentSet = name;
+                          setRuleIdx = i;
                         }
                     }
                 }
-              if (debug)
-                for (unsigned int i = 0; i < backupSetRule.size(); ++i)
-                  cout << "       Next backup for " << backupSetRule[i].name << " at " <<  nextBackup[i].getString('h') << endl;
-
-              // find backupSet that
-              //    - needs backup
-              //    - has longest time to keep
-              // because of ordered list backupSetRule this is the first set, that need
-
-              currentSet = "";
-              for (unsigned int i = 0; i < backupSetRule.size() && currentSet.empty(); ++i)
+              else
                 {
-                  string name = backupSetRule[i].name;
-                  if (nextBackup[i] <= imageTime + 5) // small offset of 5s for "jitter"
+                  if (setIdx.count(forcedBackupSet) > 0)
                     {
-                      backupNow = true;
-                      currentSet = name;
-                      setRuleIdx = i;
+                      currentSet = forcedBackupSet;
+                      setRuleIdx = setIdx[forcedBackupSet];
                     }
+                  else
+                    throw Exception("force backup of set " + forcedBackupSet, " set not exists");
                 }
-            }
-        }
+            } // if (!setIdx.empty())
+        } // (conf.hasKey("setRule"))
 
       if (backupNow)
         {
@@ -471,7 +489,7 @@ void backupVault(const string& vault,
           if (!dryRun)
             {
               // set symlink to last image
-              string lastLink = vaultpath + "/last";
+              string lastLink = vaultPath + "/last";
               unlink(lastLink.c_str());
               symlink(imageFullName.c_str(), lastLink.c_str());
 
@@ -646,7 +664,7 @@ int main(int argc, char* argv[])
       if (doBackup)
         for (string vault : vaults)
           {
-            backupVault(vault, conf, imageTime, fullImage);
+            backupVault(vault, conf, imageTime, fullImage, forcedBackupSet);
             writeSizes(logSizeFile);
           }
 
