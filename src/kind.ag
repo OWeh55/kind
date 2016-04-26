@@ -235,136 +235,160 @@ void doBackup(const string& vault,
   if (!host.empty() && !server.empty())
     throw Exception("backupVault", "Cannot have host and server");
 
-  string path = conf.getString("path");
-  if (path.empty())
-    throw Exception("rsync", "empty source path");
-  if (path.back() != '/')
-    path += '/';
+  if (host.empty() && server.empty())
+    throw Exception("backupVault", "No host or server specified");
 
-  string rsyncCmd = "rsync -vrltH --delete --stats -D --numeric-ids ";
-  if (!conf.getBool("ignorePermission"))
-    rsyncCmd += "-pgo";
-  vector<string> rso = conf.getStrings("rsyncOption");
-  for (const string& opt : rso)
-    rsyncCmd += opt + " ";
-
-  // excludes
-  Strings excluded;
-
-  if (conf.hasKey("exclude"))
-    excluded += conf.getStrings("exclude");
-
-  if (!host.empty())  // shell mode
+  // ping host / server
+  // ping -c 1 -W 5 -q $HOST
+  string pingCommand = conf.getString("ping");
+  debugPrint("PingCommand: " + pingCommand);
+  if (!pingCommand.empty())
     {
-      // cout << "USING SHELLMODE '" << host << "'" << endl;
-      string remoteShell = conf.getString("remoteShell");
-      string userAtHost = conf.getString("user") + "@" +
-                          conf.getString("host");
-      string rshCommand = remoteShell;
-      if (remoteShell.empty())
-        rshCommand = "ssh";
-
-      rshCommand += " " + userAtHost;
-
-      string userExcludeCommand = conf.getString("userExcludeCommand");
-
-      if (!userExcludeCommand.empty())
-        {
-          replacePlaceHolder(userExcludeCommand, "%path", path);
-          string excludeCommand = rshCommand + " " + userExcludeCommand;
-
-          verbosePrint("searching for exclusions (" + excludeCommand + ")");
-
-          int rc;
-          Strings excludedFiles = myPopen(excludeCommand, rc, debug);
-          if (rc > 0)
-            {
-              // return Strings should contain error messages
-              strings2File(excludedFiles, errorfile);
-              throw Exception("Find exludes", "Search for excludes failed");
-            }
-
-          for (unsigned int i = 0; i < excludedFiles.size(); ++i)
-            {
-              FileName fn(excludedFiles[i]);
-              excluded.push_back('/' + fn.getPath());
-              debugPrint("Excluding: " + excluded.back());
-            }
-        }
-
-      string userExcludeFile = conf.getString("userExcludeFile");
-      if (!userExcludeFile.empty())
-        {
-          userExcludeFile = path + userExcludeFile;
-          string getExcludeFileCommand = rshCommand;
-          getExcludeFileCommand += " \" if [ -f '" + userExcludeFile + "' ]; then ";
-          getExcludeFileCommand += " cat '" + userExcludeFile + "' ; fi \"";
-          // cout << getExcludeFileCommand << endl;
-          int rc;
-          Strings excludes2 = myPopen(getExcludeFileCommand, rc, debug);
-          if (rc == 0)
-            excluded += excludes2;
-        }
-
-      if (!dryRun)
-        strings2File(excluded, imageFullName + "/exclude");
-
-      // rsync image
-
-      if (!remoteShell.empty())
-        rsyncCmd += " -e \'" + remoteShell + "\' ";
-
-      rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
-      if (!referenceImage.empty())
-        rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
-      rsyncCmd += userAtHost + ":" + path + " ";
-      rsyncCmd += imageFullName + "/tree";
-    } // shell mode
-  else
-    {
-      // cout << "USING SERVERMODE" << endl;
-
-      if (!dryRun)
-        strings2File(excluded, imageFullName + "/exclude");
-
-      rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
-      if (!referenceImage.empty())
-        rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
-      rsyncCmd += conf.getString("server") + "::" + path + " ";
-      rsyncCmd += imageFullName + "/tree";
+      if (!host.empty())
+        replacePlaceHolder(pingCommand, "%host", host);
+      else
+        replacePlaceHolder(pingCommand, "%host", server);
+      int rc = 0;
+      Strings pingResult = myPopen(pingCommand, rc, debug);
+      if (rc != 0)
+	{
+	  strings2File(pingResult, errorfile);
+	  throw Exception("Host not available",pingCommand);
+	}
     }
 
-  debugPrint("Action: " + rsyncCmd);
+      string path = conf.getString("path");
+      if (path.empty())
+        throw Exception("rsync", "empty source path");
+      if (path.back() != '/')
+        path += '/';
 
-  vector<string> backupResult;
-  if (!dryRun)
-    {
-      verbosePrint("syncing (" + rsyncCmd + ")");
-      int rc;
-      backupResult = myPopen(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
-      if (rc == 0 ||
-          rc == 24 || // "no error" or "vanished source files" (ignored)
-          rc == 6144) // workaround for wrong exit code ??!!
+      string rsyncCmd = "rsync -vrltH --delete --stats -D --numeric-ids ";
+      if (!conf.getBool("ignorePermission"))
+        rsyncCmd += "-pgo";
+      vector<string> rso = conf.getStrings("rsyncOption");
+      for (const string& opt : rso)
+        rsyncCmd += opt + " ";
+
+      // excludes
+      Strings excluded;
+
+      if (conf.hasKey("exclude"))
+        excluded += conf.getStrings("exclude");
+
+      if (!host.empty())  // shell mode
         {
-          unlink(errorfile.c_str());
-          long int st = 0;
-          long int sc = 0;
-          for (auto bl : backupResult)
+          // cout << "USING SHELLMODE '" << host << "'" << endl;
+          string remoteShell = conf.getString("remoteShell");
+          string userAtHost = conf.getString("user") + "@" +
+                              conf.getString("host");
+          string rshCommand = remoteShell;
+          if (remoteShell.empty())
+            rshCommand = "ssh";
+
+          rshCommand += " " + userAtHost;
+
+          string userExcludeCommand = conf.getString("userExcludeCommand");
+
+          if (!userExcludeCommand.empty())
             {
-              if (startsWith(bl, "Total file size"))
-                st = getNumber(bl);
-              else if (startsWith(bl, "Total transferred file size"))
-                sc = getNumber(bl);
+              replacePlaceHolder(userExcludeCommand, "%path", path);
+              string excludeCommand = rshCommand + " " + userExcludeCommand;
+
+              verbosePrint("searching for exclusions (" + excludeCommand + ")");
+
+              int rc;
+              Strings excludedFiles = myPopen(excludeCommand, rc, debug);
+              if (rc > 0)
+                {
+                  // return Strings should contain error messages
+                  strings2File(excludedFiles, errorfile);
+                  throw Exception("Find exludes", "Search for excludes failed");
+                }
+
+              for (unsigned int i = 0; i < excludedFiles.size(); ++i)
+                {
+                  FileName fn(excludedFiles[i]);
+                  excluded.push_back('/' + fn.getPath());
+                  debugPrint("Excluding: " + excluded.back());
+                }
             }
-          // sizes[vault] = pair<long int, long int>(st, sc);
-          sizes[vault] = Sizes(st, sc);
-          //  cout << vault << " " << st << " || " << sc << endl;
+
+          string userExcludeFile = conf.getString("userExcludeFile");
+          if (!userExcludeFile.empty())
+            {
+              userExcludeFile = path + userExcludeFile;
+              string getExcludeFileCommand = rshCommand;
+              getExcludeFileCommand += " \" if [ -f '" + userExcludeFile + "' ]; then ";
+              getExcludeFileCommand += " cat '" + userExcludeFile + "' ; fi \"";
+              // cout << getExcludeFileCommand << endl;
+              int rc;
+              Strings excludes2 = myPopen(getExcludeFileCommand, rc, debug);
+              if (rc == 0)
+                excluded += excludes2;
+            }
+
+          if (!dryRun)
+            strings2File(excluded, imageFullName + "/exclude");
+
+          // rsync image
+
+          if (!remoteShell.empty())
+            rsyncCmd += " -e \'" + remoteShell + "\' ";
+
+          rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
+          if (!referenceImage.empty())
+            rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
+          rsyncCmd += userAtHost + ":" + path + " ";
+          rsyncCmd += imageFullName + "/tree";
+        } // shell mode
+      else
+        {
+          // cout << "USING SERVERMODE" << endl;
+          // we cannot use find without shell access
+          // and do not read an exclude file on client side
+
+          if (!dryRun)
+            strings2File(excluded, imageFullName + "/exclude");
+
+          rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
+          if (!referenceImage.empty())
+            rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
+          rsyncCmd += conf.getString("server") + "::" + path + " ";
+          rsyncCmd += imageFullName + "/tree";
+        }
+
+      debugPrint("Action: " + rsyncCmd);
+
+      vector<string> backupResult;
+      if (!dryRun)
+        {
+          verbosePrint("syncing (" + rsyncCmd + ")");
+          int rc;
+          backupResult = myPopen(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
+          if (rc == 0 ||
+              rc == 24 || // "no error" or "vanished source files" (ignored)
+              rc == 6144) // workaround for wrong exit code ??!!
+            {
+              unlink(errorfile.c_str());
+              long int st = 0;
+              long int sc = 0;
+              for (auto bl : backupResult)
+                {
+                  if (startsWith(bl, "Total file size"))
+                    st = getNumber(bl);
+                  else if (startsWith(bl, "Total transferred file size"))
+                    sc = getNumber(bl);
+                }
+              // sizes[vault] = pair<long int, long int>(st, sc);
+              sizes[vault] = Sizes(st, sc);
+              //  cout << vault << " " << st << " || " << sc << endl;
+            }
+          else
+            throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc) + ")");
         }
       else
-        throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc) + ")");
-    }
-  else
-    cout << "Not executing " << rsyncCmd << endl;
+        cout << "Not executing " << rsyncCmd << endl;
 }
 
 void backupVault(const string& vault,
@@ -474,6 +498,7 @@ void backupVault(const string& vault,
 
       if (backupNow)
         {
+
           // find reference image
           string referenceImage;
           if (!fullImage)
@@ -615,6 +640,7 @@ int main(int argc, char* argv[])
       conf.add("vaultConfigName", "kind/vault.conf");
       conf.add("expireFailedImage", "3 days");
       conf.add("expireRule", "* * * * 1 month");
+      conf.add("ping", "ping -c 1 -W 5 %host");
       conf.add("rsyncOption", ""); // no additional rsync option
       conf.add("remoteShell", "");
       conf.add("lockfile", "/var/lock/kind");
