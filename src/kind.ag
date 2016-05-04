@@ -43,8 +43,10 @@
   opt: B, backup, void, doBackup, Backup, false
   opt: E, expire, void, doExpire, Expire, false
   opt: C, listconfig, void, listConfig, Show configuration, false
-  opt2:   if none of backup, expire or listconfig is specified,
+  opt: I, listimages, void, listImages, List data of images, false
+  opt2:   if none of backup, expire, listconfig and listimages is specified,
   opt2:   backup and expire is assumed.
+  opt2:   listconfig and listimages cannot be combined with other actions
   opt: D, dryrun, Void, dryRun, Dry run (no real backup), false
   opt: F, forcebackup, string, forcedBackupSet, Create image for specified backup set, ""
   opt: v, verbose, Void, verbose,  Verbose,  false
@@ -200,6 +202,20 @@ Images findImages(const string& vaultpath, const KindConfig& conf, bool all)
   if (imageList.size() > 1)
     sort(imageList.begin(), imageList.end());
   return imageList;
+}
+
+void listImageInfo(const string& vault,
+		   KindConfig conf /*Copy!*/ ,
+		   const DateTime& imageTime,
+		   const string& backupSet)
+{
+  readVaultConfig(vault, conf);
+  string vaultPath = findVault(vault);
+  Images imageList = findImages(vaultPath, conf, true);
+  for (auto img:imageList)
+    {
+      cout << img.name << endl;
+    }
 }
 
 void doBackup(const string& vault,
@@ -401,8 +417,6 @@ void backupVault(const string& vault,
     cout << DateTime::now().getString('h') << ": Backup of vault " << vault << endl;
   try
     {
-      sizes[vault].second = 0; // nothing backed up yet
-
       readVaultConfig(vault, conf);
 
       // where to store
@@ -513,9 +527,9 @@ void backupVault(const string& vault,
 
           if (!dryRun)
             {
-
               string lastPath = vaultPath + "/last";
               struct stat fstat;
+
               // remove last (dir or symlink)
               if (lstat(lastPath.c_str(), &fstat) == 0) // last exists
                 {
@@ -525,17 +539,22 @@ void backupVault(const string& vault,
                     unlink(lastPath.c_str());
                 }
 
-              if (conf.getBool("lastIsHardLink"))
+	      string linkType=conf.getString("lastLink");
+              if (linkType=="hardLink")
                 {
                   int rc;
                   string hardLinkCommand = "cp -al " + imageFullName + " " + lastPath;
                   Strings res = myPopen(hardLinkCommand, rc, debug);
                 }
-              else
+              else if (linkType=="symLink")
                 {
                   // set symlink to last image
                   symlink(imageFullName.c_str(), lastPath.c_str());
                 }
+	      else if (linkType!="null")
+		{
+		  cerr << "invalid Value in \"lastLink\"" << endl;
+		}
 
               // write expire date to file
               DateTime expireTime;
@@ -646,7 +665,7 @@ int main(int argc, char* argv[])
       if (debug)        // debug implies verbose
         verbose = true;
 
-      if (!doBackup && !doExpire && !listConfig)
+      if (!doBackup && !doExpire && !listConfig && !listImages)
         {
           doBackup = true;
           doExpire = true;
@@ -667,6 +686,7 @@ int main(int argc, char* argv[])
       conf.add("userExcludeCommand",
                "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
       conf.add("logSize", "");
+      conf.add("lastLink","symLink");
 
       if (listConfig)
         {
@@ -690,10 +710,16 @@ int main(int argc, char* argv[])
           exit(0);
         }
 
+      DateTime imageTime = DateTime::now();
+
+      if (listImages)
+        {
+	  listImageInfo(vault, conf, imageTime, forcedBackupSet);
+          exit(0);
+        }
+
       lockFile = conf.getString("lockfile");
       createLock(lockFile);
-
-      DateTime imageTime = DateTime::now();
 
       string logSizeFile = conf.getString("logSize");
       if (!logSizeFile.empty())
