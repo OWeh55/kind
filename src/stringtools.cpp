@@ -195,6 +195,27 @@ time_t stot(const string& str)
   return value;
 }
 
+string timeString(time_t t)
+{
+  int sec = t % 60;
+  t /= 60;
+  int min = t % 60;
+  t /= 60;
+  int hour = t % 24;
+  t /= 24;
+  int days = t;
+  string res;
+  if (days > 0)
+    res += to_string(days) + " days ";
+  if (hour > 0)
+    res += to_string(hour) + " hours ";
+  if (min > 0)
+    res += to_string(min) + " minutes ";
+  if (sec > 0 || res.empty())
+    res += to_string(sec) + " seconds ";
+  return res;
+}
+
 long int getNumber(const string& l)
 {
   // read *all* digits from string l ignoring all other characters

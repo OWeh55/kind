@@ -205,16 +205,29 @@ Images findImages(const string& vaultpath, const KindConfig& conf, bool all)
 }
 
 void listImageInfo(const string& vault,
-		   KindConfig conf /*Copy!*/ ,
-		   const DateTime& imageTime,
-		   const string& backupSet)
+                   KindConfig conf /*Copy!*/ ,
+                   const DateTime& imageTime,
+                   const string& backupSet)
 {
   readVaultConfig(vault, conf);
   string vaultPath = findVault(vault);
   Images imageList = findImages(vaultPath, conf, true);
-  for (auto img:imageList)
+  for (auto img : imageList)
     {
-      cout << img.name << endl;
+      if (img.series == backupSet || backupSet.empty())
+        {
+          cout << img.name << endl;
+          if (img.valid)
+            {
+              if (img.series != "expire")
+                cout << "backup set: " << img.series << endl;
+              cout << "created: " << img.time.getString() << endl;
+              cout << "expires: " << img.expire.getString() << " -  +" << timeString(img.expire - imageTime) << endl;
+            }
+
+          else
+            cout << "invalid" << endl;
+        }
     }
 }
 
@@ -539,22 +552,20 @@ void backupVault(const string& vault,
                     unlink(lastPath.c_str());
                 }
 
-	      string linkType=conf.getString("lastLink");
-              if (linkType=="hardLink")
+              string linkType = conf.getString("lastLink");
+              if (linkType == "hardLink")
                 {
                   int rc;
                   string hardLinkCommand = "cp -al " + imageFullName + " " + lastPath;
                   Strings res = myPopen(hardLinkCommand, rc, debug);
                 }
-              else if (linkType=="symLink")
+              else if (linkType == "symLink")
                 {
                   // set symlink to last image
                   symlink(imageFullName.c_str(), lastPath.c_str());
                 }
-	      else if (linkType!="null")
-		{
-		  cerr << "invalid Value in \"lastLink\"" << endl;
-		}
+              else if (linkType != "null")
+                cerr << "invalid Value in \"lastLink\"" << endl;
 
               // write expire date to file
               DateTime expireTime;
@@ -686,7 +697,7 @@ int main(int argc, char* argv[])
       conf.add("userExcludeCommand",
                "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
       conf.add("logSize", "");
-      conf.add("lastLink","symLink");
+      conf.add("lastLink", "symLink");
 
       if (listConfig)
         {
@@ -714,7 +725,7 @@ int main(int argc, char* argv[])
 
       if (listImages)
         {
-	  listImageInfo(vault, conf, imageTime, forcedBackupSet);
+          listImageInfo(vault, conf, imageTime, forcedBackupSet);
           exit(0);
         }
 

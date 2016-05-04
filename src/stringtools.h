@@ -53,6 +53,9 @@ bool startsWith(const std::string& s, const std::string& start);
 // string to time
 // converts a given string to a time period (in seconds)
 time_t stot(const std::string& s);
+// time_t to string
+// converts a given time period (time_t in seconds) to a string
+std::string timeString(time_t t);
 
 // replaces in string template the placeholder string with the
 // string given as content

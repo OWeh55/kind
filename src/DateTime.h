@@ -47,6 +47,11 @@ public:
     return DateTime(t1.theTime - t2);
   }
 
+  friend time_t operator-(const DateTime& t1, const DateTime& t2)
+  {
+    return t1.theTime - t2.theTime;
+  }
+
   friend bool operator<(const DateTime& t1, const DateTime& t2)
   {
     return t1.theTime < t2.theTime;
