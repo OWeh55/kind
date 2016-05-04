@@ -514,281 +514,281 @@ void doBackup(const string& vault,
 # 253 "kind.ag"
       if (rc != 0)
 # 254 "kind.ag"
-	{
+        {
 # 255 "kind.ag"
-	  strings2File(pingResult, errorfile);
+          strings2File(pingResult, errorfile);
 # 256 "kind.ag"
-	  throw Exception("Host not available",pingCommand);
+          throw Exception("Host not available", pingCommand);
 # 257 "kind.ag"
-	}
+        }
 # 258 "kind.ag"
     }
 # 259 "kind.ag"
 
 # 260 "kind.ag"
-      string path = conf.getString("path");
+  string path = conf.getString("path");
 # 261 "kind.ag"
-      if (path.empty())
+  if (path.empty())
 # 262 "kind.ag"
-        throw Exception("rsync", "empty source path");
+    throw Exception("rsync", "empty source path");
 # 263 "kind.ag"
-      if (path.back() != '/')
+  if (path.back() != '/')
 # 264 "kind.ag"
-        path += '/';
+    path += '/';
 # 265 "kind.ag"
 
 # 266 "kind.ag"
-      string rsyncCmd = "rsync -vrltH --delete --stats -D --numeric-ids ";
+  string rsyncCmd = "rsync -vrltH --delete --stats -D --numeric-ids ";
 # 267 "kind.ag"
-      if (!conf.getBool("ignorePermission"))
+  if (!conf.getBool("ignorePermission"))
 # 268 "kind.ag"
-        rsyncCmd += "-pgo";
+    rsyncCmd += "-pgo";
 # 269 "kind.ag"
-      vector<string> rso = conf.getStrings("rsyncOption");
+  vector<string> rso = conf.getStrings("rsyncOption");
 # 270 "kind.ag"
-      for (const string& opt : rso)
+  for (const string& opt : rso)
 # 271 "kind.ag"
-        rsyncCmd += opt + " ";
+    rsyncCmd += opt + " ";
 # 272 "kind.ag"
 
 # 273 "kind.ag"
-      // excludes
+  // excludes
 # 274 "kind.ag"
-      Strings excluded;
+  Strings excluded;
 # 275 "kind.ag"
 
 # 276 "kind.ag"
-      if (conf.hasKey("exclude"))
+  if (conf.hasKey("exclude"))
 # 277 "kind.ag"
-        excluded += conf.getStrings("exclude");
+    excluded += conf.getStrings("exclude");
 # 278 "kind.ag"
 
 # 279 "kind.ag"
-      if (!host.empty())  // shell mode
+  if (!host.empty())  // shell mode
 # 280 "kind.ag"
-        {
+    {
 # 281 "kind.ag"
-          // cout << "USING SHELLMODE '" << host << "'" << endl;
+      // cout << "USING SHELLMODE '" << host << "'" << endl;
 # 282 "kind.ag"
-          string remoteShell = conf.getString("remoteShell");
+      string remoteShell = conf.getString("remoteShell");
 # 283 "kind.ag"
-          string userAtHost = conf.getString("user") + "@" +
+      string userAtHost = conf.getString("user") + "@" +
 # 284 "kind.ag"
-                              conf.getString("host");
+      conf.getString("host");
 # 285 "kind.ag"
-          string rshCommand = remoteShell;
+      string rshCommand = remoteShell;
 # 286 "kind.ag"
-          if (remoteShell.empty())
+      if (remoteShell.empty())
 # 287 "kind.ag"
-            rshCommand = "ssh";
+        rshCommand = "ssh";
 # 288 "kind.ag"
 
 # 289 "kind.ag"
-          rshCommand += " " + userAtHost;
+      rshCommand += " " + userAtHost;
 # 290 "kind.ag"
 
 # 291 "kind.ag"
-          string userExcludeCommand = conf.getString("userExcludeCommand");
+      string userExcludeCommand = conf.getString("userExcludeCommand");
 # 292 "kind.ag"
 
 # 293 "kind.ag"
-          if (!userExcludeCommand.empty())
+      if (!userExcludeCommand.empty())
 # 294 "kind.ag"
-            {
+        {
 # 295 "kind.ag"
-              replacePlaceHolder(userExcludeCommand, "%path", path);
+          replacePlaceHolder(userExcludeCommand, "%path", path);
 # 296 "kind.ag"
-              string excludeCommand = rshCommand + " " + userExcludeCommand;
+          string excludeCommand = rshCommand + " " + userExcludeCommand;
 # 297 "kind.ag"
 
 # 298 "kind.ag"
-              verbosePrint("searching for exclusions (" + excludeCommand + ")");
+          verbosePrint("searching for exclusions (" + excludeCommand + ")");
 # 299 "kind.ag"
 
 # 300 "kind.ag"
-              int rc;
+          int rc;
 # 301 "kind.ag"
-              Strings excludedFiles = myPopen(excludeCommand, rc, debug);
+          Strings excludedFiles = myPopen(excludeCommand, rc, debug);
 # 302 "kind.ag"
-              if (rc > 0)
+          if (rc > 0)
 # 303 "kind.ag"
-                {
+            {
 # 304 "kind.ag"
-                  // return Strings should contain error messages
+              // return Strings should contain error messages
 # 305 "kind.ag"
-                  strings2File(excludedFiles, errorfile);
+              strings2File(excludedFiles, errorfile);
 # 306 "kind.ag"
-                  throw Exception("Find exludes", "Search for excludes failed");
+              throw Exception("Find exludes", "Search for excludes failed");
 # 307 "kind.ag"
-                }
+            }
 # 308 "kind.ag"
 
 # 309 "kind.ag"
-              for (unsigned int i = 0; i < excludedFiles.size(); ++i)
+          for (unsigned int i = 0; i < excludedFiles.size(); ++i)
 # 310 "kind.ag"
-                {
+            {
 # 311 "kind.ag"
-                  FileName fn(excludedFiles[i]);
+              FileName fn(excludedFiles[i]);
 # 312 "kind.ag"
-                  excluded.push_back('/' + fn.getPath());
+              excluded.push_back('/' + fn.getPath());
 # 313 "kind.ag"
-                  debugPrint("Excluding: " + excluded.back());
+              debugPrint("Excluding: " + excluded.back());
 # 314 "kind.ag"
-                }
-# 315 "kind.ag"
             }
+# 315 "kind.ag"
+        }
 # 316 "kind.ag"
 
 # 317 "kind.ag"
-          string userExcludeFile = conf.getString("userExcludeFile");
+      string userExcludeFile = conf.getString("userExcludeFile");
 # 318 "kind.ag"
-          if (!userExcludeFile.empty())
+      if (!userExcludeFile.empty())
 # 319 "kind.ag"
-            {
+        {
 # 320 "kind.ag"
-              userExcludeFile = path + userExcludeFile;
+          userExcludeFile = path + userExcludeFile;
 # 321 "kind.ag"
-              string getExcludeFileCommand = rshCommand;
+          string getExcludeFileCommand = rshCommand;
 # 322 "kind.ag"
-              getExcludeFileCommand += " \" if [ -f '" + userExcludeFile + "' ]; then ";
+          getExcludeFileCommand += " \" if [ -f '" + userExcludeFile + "' ]; then ";
 # 323 "kind.ag"
-              getExcludeFileCommand += " cat '" + userExcludeFile + "' ; fi \"";
+          getExcludeFileCommand += " cat '" + userExcludeFile + "' ; fi \"";
 # 324 "kind.ag"
-              // cout << getExcludeFileCommand << endl;
+          // cout << getExcludeFileCommand << endl;
 # 325 "kind.ag"
-              int rc;
+          int rc;
 # 326 "kind.ag"
-              Strings excludes2 = myPopen(getExcludeFileCommand, rc, debug);
+          Strings excludes2 = myPopen(getExcludeFileCommand, rc, debug);
 # 327 "kind.ag"
-              if (rc == 0)
+          if (rc == 0)
 # 328 "kind.ag"
-                excluded += excludes2;
+            excluded += excludes2;
 # 329 "kind.ag"
-            }
+        }
 # 330 "kind.ag"
 
 # 331 "kind.ag"
-          if (!dryRun)
+      if (!dryRun)
 # 332 "kind.ag"
-            strings2File(excluded, imageFullName + "/exclude");
+        strings2File(excluded, imageFullName + "/exclude");
 # 333 "kind.ag"
 
 # 334 "kind.ag"
-          // rsync image
+      // rsync image
 # 335 "kind.ag"
 
 # 336 "kind.ag"
-          if (!remoteShell.empty())
+      if (!remoteShell.empty())
 # 337 "kind.ag"
-            rsyncCmd += " -e \'" + remoteShell + "\' ";
+        rsyncCmd += " -e \'" + remoteShell + "\' ";
 # 338 "kind.ag"
 
 # 339 "kind.ag"
-          rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
+      rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
 # 340 "kind.ag"
-          if (!referenceImage.empty())
+      if (!referenceImage.empty())
 # 341 "kind.ag"
-            rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
+        rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
 # 342 "kind.ag"
-          rsyncCmd += userAtHost + ":" + path + " ";
+      rsyncCmd += userAtHost + ":" + path + " ";
 # 343 "kind.ag"
-          rsyncCmd += imageFullName + "/tree";
+      rsyncCmd += imageFullName + "/tree";
 # 344 "kind.ag"
-        } // shell mode
+    } // shell mode
 # 345 "kind.ag"
-      else
+  else
 # 346 "kind.ag"
-        {
+    {
 # 347 "kind.ag"
-          // cout << "USING SERVERMODE" << endl;
+      // cout << "USING SERVERMODE" << endl;
 # 348 "kind.ag"
-          // we cannot use find without shell access
+      // we cannot use find without shell access
 # 349 "kind.ag"
-          // and do not read an exclude file on client side
+      // and do not read an exclude file on client side
 # 350 "kind.ag"
 
 # 351 "kind.ag"
-          if (!dryRun)
+      if (!dryRun)
 # 352 "kind.ag"
-            strings2File(excluded, imageFullName + "/exclude");
+        strings2File(excluded, imageFullName + "/exclude");
 # 353 "kind.ag"
 
 # 354 "kind.ag"
-          rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
+      rsyncCmd += "--exclude-from=" + imageFullName + "/exclude ";
 # 355 "kind.ag"
-          if (!referenceImage.empty())
+      if (!referenceImage.empty())
 # 356 "kind.ag"
-            rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
+        rsyncCmd += "--link-dest=" + referenceImage + "/tree ";
 # 357 "kind.ag"
-          rsyncCmd += conf.getString("server") + "::" + path + " ";
+      rsyncCmd += conf.getString("server") + "::" + path + " ";
 # 358 "kind.ag"
-          rsyncCmd += imageFullName + "/tree";
+      rsyncCmd += imageFullName + "/tree";
 # 359 "kind.ag"
-        }
+    }
 # 360 "kind.ag"
 
 # 361 "kind.ag"
-      debugPrint("Action: " + rsyncCmd);
+  debugPrint("Action: " + rsyncCmd);
 # 362 "kind.ag"
 
 # 363 "kind.ag"
-      vector<string> backupResult;
+  vector<string> backupResult;
 # 364 "kind.ag"
-      if (!dryRun)
+  if (!dryRun)
 # 365 "kind.ag"
-        {
+    {
 # 366 "kind.ag"
-          verbosePrint("syncing (" + rsyncCmd + ")");
+      verbosePrint("syncing (" + rsyncCmd + ")");
 # 367 "kind.ag"
-          int rc;
+      int rc;
 # 368 "kind.ag"
-          backupResult = myPopen(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
+      backupResult = myPopen(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
 # 369 "kind.ag"
-          if (rc == 0 ||
+      if (rc == 0 ||
 # 370 "kind.ag"
-              rc == 24 || // "no error" or "vanished source files" (ignored)
+      rc == 24 || // "no error" or "vanished source files" (ignored)
 # 371 "kind.ag"
-              rc == 6144) // workaround for wrong exit code ??!!
+      rc == 6144) // workaround for wrong exit code ??!!
 # 372 "kind.ag"
-            {
+        {
 # 373 "kind.ag"
-              unlink(errorfile.c_str());
+          unlink(errorfile.c_str());
 # 374 "kind.ag"
-              long int st = 0;
+          long int st = 0;
 # 375 "kind.ag"
-              long int sc = 0;
+          long int sc = 0;
 # 376 "kind.ag"
-              for (auto bl : backupResult)
+          for (auto bl : backupResult)
 # 377 "kind.ag"
-                {
+            {
 # 378 "kind.ag"
-                  if (startsWith(bl, "Total file size"))
+              if (startsWith(bl, "Total file size"))
 # 379 "kind.ag"
-                    st = getNumber(bl);
+                st = getNumber(bl);
 # 380 "kind.ag"
-                  else if (startsWith(bl, "Total transferred file size"))
+              else if (startsWith(bl, "Total transferred file size"))
 # 381 "kind.ag"
-                    sc = getNumber(bl);
+                sc = getNumber(bl);
 # 382 "kind.ag"
-                }
-# 383 "kind.ag"
-              // sizes[vault] = pair<long int, long int>(st, sc);
-# 384 "kind.ag"
-              sizes[vault] = Sizes(st, sc);
-# 385 "kind.ag"
-              //  cout << vault << " " << st << " || " << sc << endl;
-# 386 "kind.ag"
             }
-# 387 "kind.ag"
-          else
-# 388 "kind.ag"
-            throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc) + ")");
-# 389 "kind.ag"
+# 383 "kind.ag"
+          // sizes[vault] = pair<long int, long int>(st, sc);
+# 384 "kind.ag"
+          sizes[vault] = Sizes(st, sc);
+# 385 "kind.ag"
+          //  cout << vault << " " << st << " || " << sc << endl;
+# 386 "kind.ag"
         }
-# 390 "kind.ag"
+# 387 "kind.ag"
       else
+# 388 "kind.ag"
+        throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc) + ")");
+# 389 "kind.ag"
+    }
+# 390 "kind.ag"
+  else
 # 391 "kind.ag"
-        cout << "Not executing " << rsyncCmd << endl;
+    cout << "Not executing " << rsyncCmd << endl;
 # 392 "kind.ag"
 }
 # 393 "kind.ag"
@@ -1038,208 +1038,246 @@ void backupVault(const string& vault,
 # 515 "kind.ag"
             {
 # 516 "kind.ag"
-              // set symlink to last image
+
 # 517 "kind.ag"
-              string lastLink = vaultPath + "/last";
+              string lastPath = vaultPath + "/last";
 # 518 "kind.ag"
-              unlink(lastLink.c_str());
+              struct stat fstat;
 # 519 "kind.ag"
-              symlink(imageFullName.c_str(), lastLink.c_str());
+              // remove last (dir or symlink)
 # 520 "kind.ag"
-
+              if (lstat(lastPath.c_str(), &fstat) == 0) // last exists
 # 521 "kind.ag"
-              // write expire date to file
-# 522 "kind.ag"
-              DateTime expireTime;
-# 523 "kind.ag"
-              string rule;
-# 524 "kind.ag"
-              if (setRuleIdx < 0) // not backup set based
-# 525 "kind.ag"
-                expireTime = getExpireDate(imageTime, conf, rule);
-# 526 "kind.ag"
-              else
-# 527 "kind.ag"
                 {
-# 528 "kind.ag"
-                  expireTime = imageTime + backupSetRule[setRuleIdx].keep;
-# 529 "kind.ag"
-                  rule =  backupSetRule[setRuleIdx].rule;
-# 530 "kind.ag"
+# 522 "kind.ag"
+                  if (S_ISDIR(fstat.st_mode))
+# 523 "kind.ag"
+                    removeDir(lastPath);
+# 524 "kind.ag"
+                  else
+# 525 "kind.ag"
+                    unlink(lastPath.c_str());
+# 526 "kind.ag"
                 }
+# 527 "kind.ag"
+
+# 528 "kind.ag"
+              if (conf.getBool("lastIsHardLink"))
+# 529 "kind.ag"
+                {
+# 530 "kind.ag"
+                  int rc;
 # 531 "kind.ag"
-
+                  string hardLinkCommand = "cp -al " + imageFullName + " " + lastPath;
 # 532 "kind.ag"
-              ofstream expireFile(imageFullName + "/expires");
+                  Strings res = myPopen(hardLinkCommand, rc, debug);
 # 533 "kind.ag"
-              expireFile << currentSet << "-" << expireTime.getString('m') << endl;
+                }
 # 534 "kind.ag"
-              expireFile << rule << endl;
+              else
 # 535 "kind.ag"
-            }
+                {
 # 536 "kind.ag"
-        }
+                  // set symlink to last image
 # 537 "kind.ag"
-    }
+                  symlink(imageFullName.c_str(), lastPath.c_str());
 # 538 "kind.ag"
-  catch (Exception ex)
+                }
 # 539 "kind.ag"
-    {
+
 # 540 "kind.ag"
-      cerr << "Exception in vault " << vault << ": " << ex.what() << endl;
+              // write expire date to file
 # 541 "kind.ag"
-    }
+              DateTime expireTime;
 # 542 "kind.ag"
-}
+              string rule;
 # 543 "kind.ag"
-
+              if (setRuleIdx < 0) // not backup set based
 # 544 "kind.ag"
-void expireVault(const string& vault, KindConfig conf, DateTime now)
+                expireTime = getExpireDate(imageTime, conf, rule);
 # 545 "kind.ag"
-{
+              else
 # 546 "kind.ag"
-  if (!quiet)
+                {
 # 547 "kind.ag"
-    cout << DateTime::now().getString('h') << ": Expiring images in vault " << vault << endl;
+                  expireTime = imageTime + backupSetRule[setRuleIdx].keep;
 # 548 "kind.ag"
-
+                  rule =  backupSetRule[setRuleIdx].rule;
 # 549 "kind.ag"
-  readVaultConfig(vault, conf);
+                }
 # 550 "kind.ag"
 
 # 551 "kind.ag"
-  string vaultpath = findVault(vault);
+              ofstream expireFile(imageFullName + "/expires");
 # 552 "kind.ag"
-
+              expireFile << currentSet << "-" << expireTime.getString('m') << endl;
 # 553 "kind.ag"
-  Images imagelist = findImages(vaultpath, conf, true);
+              expireFile << rule << endl;
 # 554 "kind.ag"
-
+            }
 # 555 "kind.ag"
-  string lastValidImage;
+        }
 # 556 "kind.ag"
-  for (Image image : imagelist)
+    }
 # 557 "kind.ag"
-    {
+  catch (Exception ex)
 # 558 "kind.ag"
-      if (image.valid)
+    {
 # 559 "kind.ag"
-        lastValidImage = image.name;
+      cerr << "Exception in vault " << vault << ": " << ex.what() << endl;
 # 560 "kind.ag"
     }
 # 561 "kind.ag"
-
+}
 # 562 "kind.ag"
-  for (Image image : imagelist)
-# 563 "kind.ag"
-    {
-# 564 "kind.ag"
-      debugPrint(image.name);
-# 565 "kind.ag"
 
+# 563 "kind.ag"
+void expireVault(const string& vault, KindConfig conf, DateTime now)
+# 564 "kind.ag"
+{
+# 565 "kind.ag"
+  if (!quiet)
 # 566 "kind.ag"
-      DateTime imageTime = image.time;
+    cout << DateTime::now().getString('h') << ": Expiring images in vault " << vault << endl;
 # 567 "kind.ag"
 
 # 568 "kind.ag"
-      if (imageTime != now &&          // ignore just created image
+  readVaultConfig(vault, conf);
 # 569 "kind.ag"
-          image.name != lastValidImage // ignore last valid image
+
 # 570 "kind.ag"
-         )
+  string vaultpath = findVault(vault);
 # 571 "kind.ag"
-        {
+
 # 572 "kind.ag"
-          DateTime expireTime;
+  Images imagelist = findImages(vaultpath, conf, true);
 # 573 "kind.ag"
-          string expireRule;
+
 # 574 "kind.ag"
-          if (!image.valid) // invalid image?
+  string lastValidImage;
 # 575 "kind.ag"
-            {
+  for (Image image : imagelist)
 # 576 "kind.ag"
-              time_t expPeriod = stot(conf.getString("expireFailedImage"));
+    {
 # 577 "kind.ag"
-              if (expPeriod < 0)
+      if (image.valid)
 # 578 "kind.ag"
-                throw Exception("expireFailedImage", "Time period must be positive");
+        lastValidImage = image.name;
 # 579 "kind.ag"
-              expireTime = imageTime + stot(conf.getString("expireFailedImage"));
-# 580 "kind.ag"
-              expireRule = "invalid image: " + conf.getString("expireFailedImage");
-# 581 "kind.ag"
-              debugPrint("- invalid image");
-# 582 "kind.ag"
-            }
-# 583 "kind.ag"
-          else
-# 584 "kind.ag"
-            {
-# 585 "kind.ag"
-              debugPrint("- valid image");
-# 586 "kind.ag"
-              expireTime = image.expire;
-# 587 "kind.ag"
-              expireRule = image.expireRule;
-# 588 "kind.ag"
-            }
-# 589 "kind.ag"
-
-# 590 "kind.ag"
-          if (debug)
-# 591 "kind.ag"
-            {
-# 592 "kind.ag"
-              cout << "    image: " << imageTime.getString('h') << endl;
-# 593 "kind.ag"
-              cout << "      expire: " << expireTime.getString('h') << " " << expireRule << endl;
-# 594 "kind.ag"
-              cout << "      now: " << now.getString('h') << endl;
-# 595 "kind.ag"
-            }
-# 596 "kind.ag"
-
-# 597 "kind.ag"
-          if (expireTime < now)
-# 598 "kind.ag"
-            {
-# 599 "kind.ag"
-              if (!quiet)
-# 600 "kind.ag"
-                cout << "  removing image " << image.name << endl;
-# 601 "kind.ag"
-              try
-# 602 "kind.ag"
-                {
-# 603 "kind.ag"
-                  if (removeDir(image.name) != 0)
-# 604 "kind.ag"
-                    cout << "Error removing " <<  image.name << endl;
-# 605 "kind.ag"
-                }
-# 606 "kind.ag"
-              catch (Exception ex)
-# 607 "kind.ag"
-                {
-# 608 "kind.ag"
-                  cerr << "Exception: " << ex.what() << endl;
-# 609 "kind.ag"
-                }
-# 610 "kind.ag"
-            }
-# 611 "kind.ag"
-        }
-# 612 "kind.ag"
-      else
-# 613 "kind.ag"
-        debugPrint("- current image - ignored");
-# 614 "kind.ag"
     }
-# 615 "kind.ag"
-}
-# 616 "kind.ag"
+# 580 "kind.ag"
 
+# 581 "kind.ag"
+  for (Image image : imagelist)
+# 582 "kind.ag"
+    {
+# 583 "kind.ag"
+      debugPrint(image.name);
+# 584 "kind.ag"
+
+# 585 "kind.ag"
+      DateTime imageTime = image.time;
+# 586 "kind.ag"
+
+# 587 "kind.ag"
+      if (imageTime != now &&          // ignore just created image
+# 588 "kind.ag"
+      image.name != lastValidImage // ignore last valid image
+# 589 "kind.ag"
+         )
+# 590 "kind.ag"
+        {
+# 591 "kind.ag"
+          DateTime expireTime;
+# 592 "kind.ag"
+          string expireRule;
+# 593 "kind.ag"
+          if (!image.valid) // invalid image?
+# 594 "kind.ag"
+            {
+# 595 "kind.ag"
+              time_t expPeriod = stot(conf.getString("expireFailedImage"));
+# 596 "kind.ag"
+              if (expPeriod < 0)
+# 597 "kind.ag"
+                throw Exception("expireFailedImage", "Time period must be positive");
+# 598 "kind.ag"
+              expireTime = imageTime + stot(conf.getString("expireFailedImage"));
+# 599 "kind.ag"
+              expireRule = "invalid image: " + conf.getString("expireFailedImage");
+# 600 "kind.ag"
+              debugPrint("- invalid image");
+# 601 "kind.ag"
+            }
+# 602 "kind.ag"
+          else
+# 603 "kind.ag"
+            {
+# 604 "kind.ag"
+              debugPrint("- valid image");
+# 605 "kind.ag"
+              expireTime = image.expire;
+# 606 "kind.ag"
+              expireRule = image.expireRule;
+# 607 "kind.ag"
+            }
+# 608 "kind.ag"
+
+# 609 "kind.ag"
+          if (debug)
+# 610 "kind.ag"
+            {
+# 611 "kind.ag"
+              cout << "    image: " << imageTime.getString('h') << endl;
+# 612 "kind.ag"
+              cout << "      expire: " << expireTime.getString('h') << " " << expireRule << endl;
+# 613 "kind.ag"
+              cout << "      now: " << now.getString('h') << endl;
+# 614 "kind.ag"
+            }
+# 615 "kind.ag"
+
+# 616 "kind.ag"
+          if (expireTime < now)
 # 617 "kind.ag"
+            {
+# 618 "kind.ag"
+              if (!quiet)
+# 619 "kind.ag"
+                cout << "  removing image " << image.name << endl;
+# 620 "kind.ag"
+              try
+# 621 "kind.ag"
+                {
+# 622 "kind.ag"
+                  if (removeDir(image.name) != 0)
+# 623 "kind.ag"
+                    cout << "Error removing " <<  image.name << endl;
+# 624 "kind.ag"
+                }
+# 625 "kind.ag"
+              catch (Exception ex)
+# 626 "kind.ag"
+                {
+# 627 "kind.ag"
+                  cerr << "Exception: " << ex.what() << endl;
+# 628 "kind.ag"
+                }
+# 629 "kind.ag"
+            }
+# 630 "kind.ag"
+        }
+# 631 "kind.ag"
+      else
+# 632 "kind.ag"
+        debugPrint("- current image - ignored");
+# 633 "kind.ag"
+    }
+# 634 "kind.ag"
+}
+# 635 "kind.ag"
+
+# 636 "kind.ag"
 /*AppGen:Main*/
 string ag_programName;
 
@@ -1291,15 +1329,15 @@ void usage()
   exit(1);
 }
 
-void error(const string &msg)
+void error(const string& msg)
 {
   cout << endl << ag_programName << " - error: " << msg << endl << endl;
   usage();
 }
 
-int ptoi(const char *para)
+int ptoi(const char* para)
 {
-  char *end;
+  char* end;
   int res = strtol(para, &end, 10);
   if (end == para)
     error(string("no int: ") + para);
@@ -1308,9 +1346,9 @@ int ptoi(const char *para)
   return res;
 }
 
-double ptod(const char *para)
+double ptod(const char* para)
 {
-  char *end;
+  char* end;
   double res = strtod(para, &end);
   if (end == para)
     error(string("no double: ") + para);
@@ -1319,16 +1357,16 @@ double ptod(const char *para)
   return res;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-string masterConfig = "";
-bool fullImage = false;
-bool doBackup = false;
-bool doExpire = false;
-bool listConfig = false;
-string forcedBackupSet = "";
+  string masterConfig = "";
+  bool fullImage = false;
+  bool doBackup = false;
+  bool doExpire = false;
+  bool listConfig = false;
+  string forcedBackupSet = "";
 
-string vault = "";
+  string vault = "";
   static struct option ag_long_options[] =
   {
     {"masterconfig", required_argument, 0, 'c' },
@@ -1358,48 +1396,48 @@ string vault = "";
           error("Expecting option parameter");
           break;
         case 'c':
-              masterConfig = optarg;
-              break;
+          masterConfig = optarg;
+          break;
 
         case 'f':
-              fullImage = true;
-              break;
+          fullImage = true;
+          break;
 
         case 'B':
-              doBackup = true;
-              break;
+          doBackup = true;
+          break;
 
         case 'E':
-              doExpire = true;
-              break;
+          doExpire = true;
+          break;
 
         case 'C':
-              listConfig = true;
-              break;
+          listConfig = true;
+          break;
 
         case 'D':
-              dryRun = true;
-              break;
+          dryRun = true;
+          break;
 
         case 'F':
-              forcedBackupSet = optarg;
-              break;
+          forcedBackupSet = optarg;
+          break;
 
         case 'v':
-              verbose = true;
-              break;
+          verbose = true;
+          break;
 
         case 'd':
-              debug = true;
-              break;
+          debug = true;
+          break;
 
         case 'q':
-              quiet = true;
-              break;
+          quiet = true;
+          break;
 
         case 'h':
-              usage();
-              break;
+          usage();
+          break;
 
         default:
           error("error in options");
@@ -1409,208 +1447,208 @@ string vault = "";
     vault = argv[optind++];
   else error("Parameter vault_or_group needed");
 
-/*AppGen:MainEnd*/
-# 621 "kind.ag"
-
-# 622 "kind.ag"
-  int exitCode = 0;
-# 623 "kind.ag"
-  string lockFile;
-# 624 "kind.ag"
-  try
-# 625 "kind.ag"
-    {
-# 626 "kind.ag"
-      // handling of parameters and switches
-# 627 "kind.ag"
-      if (debug)        // debug implies verbose
-# 628 "kind.ag"
-        verbose = true;
-# 629 "kind.ag"
-
-# 630 "kind.ag"
-      if (!doBackup && !doExpire && !listConfig)
-# 631 "kind.ag"
-        {
-# 632 "kind.ag"
-          doBackup = true;
-# 633 "kind.ag"
-          doExpire = true;
-# 634 "kind.ag"
-        }
-# 635 "kind.ag"
-
-# 636 "kind.ag"
-      KindConfig conf;
-# 637 "kind.ag"
-
-# 638 "kind.ag"
-      // default-values
-# 639 "kind.ag"
-      conf.add("imageName", "image");
+  /*AppGen:MainEnd*/
 # 640 "kind.ag"
-      conf.add("vaultConfigName", "kind/vault.conf");
+
 # 641 "kind.ag"
-      conf.add("expireFailedImage", "3 days");
+  int exitCode = 0;
 # 642 "kind.ag"
-      conf.add("expireRule", "* * * * 1 month");
+  string lockFile;
 # 643 "kind.ag"
-      conf.add("ping", "ping -c 1 -W 5 %host");
+  try
 # 644 "kind.ag"
-      conf.add("rsyncOption", ""); // no additional rsync option
+    {
 # 645 "kind.ag"
-      conf.add("remoteShell", "");
+      // handling of parameters and switches
 # 646 "kind.ag"
-      conf.add("lockfile", "/var/lock/kind");
+      if (debug)        // debug implies verbose
 # 647 "kind.ag"
-      conf.add("userExcludeFile", "nobackup.list");
+        verbose = true;
 # 648 "kind.ag"
-      conf.add("userExcludeCommand",
+
 # 649 "kind.ag"
-               "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
+      if (!doBackup && !doExpire && !listConfig)
 # 650 "kind.ag"
-      conf.add("logSize", "");
+        {
 # 651 "kind.ag"
-
+          doBackup = true;
 # 652 "kind.ag"
-      if (listConfig)
+          doExpire = true;
 # 653 "kind.ag"
-        {
+        }
 # 654 "kind.ag"
-          cout << "builtin config" << endl;
+
 # 655 "kind.ag"
-          conf.print(".   ");
+      KindConfig conf;
 # 656 "kind.ag"
-        }
+
 # 657 "kind.ag"
-
+      // default-values
 # 658 "kind.ag"
-      readMasterConfig(masterConfig, conf);
+      conf.add("imageName", "image");
 # 659 "kind.ag"
-
+      conf.add("vaultConfigName", "kind/vault.conf");
 # 660 "kind.ag"
-      banks = conf.getStrings("bank");
+      conf.add("expireFailedImage", "3 days");
 # 661 "kind.ag"
-      if (banks.empty())
+      conf.add("expireRule", "* * * * 1 month");
 # 662 "kind.ag"
-        throw Exception("read master configuration", "no banks defined");
+      conf.add("ping", "ping -c 1 -W 5 %host");
 # 663 "kind.ag"
-
+      conf.add("rsyncOption", ""); // no additional rsync option
 # 664 "kind.ag"
-      if (listConfig)
+      conf.add("remoteShell", "");
 # 665 "kind.ag"
-        {
+      conf.add("lockfile", "/var/lock/kind");
 # 666 "kind.ag"
-          cout << "global config:" << endl;
+      conf.add("userExcludeFile", "nobackup.list");
 # 667 "kind.ag"
-          conf.print(".   ");
+      conf.add("userExcludeCommand",
 # 668 "kind.ag"
-          readVaultConfig(vault, conf);
+               "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
 # 669 "kind.ag"
-          cout << "vault config:" << endl;
+      conf.add("logSize", "");
 # 670 "kind.ag"
-          conf.print(".   ");
-# 671 "kind.ag"
-          exit(0);
-# 672 "kind.ag"
-        }
-# 673 "kind.ag"
 
+# 671 "kind.ag"
+      if (listConfig)
+# 672 "kind.ag"
+        {
+# 673 "kind.ag"
+          cout << "builtin config" << endl;
 # 674 "kind.ag"
-      lockFile = conf.getString("lockfile");
+          conf.print(".   ");
 # 675 "kind.ag"
-      createLock(lockFile);
+        }
 # 676 "kind.ag"
 
 # 677 "kind.ag"
-      DateTime imageTime = DateTime::now();
+      readMasterConfig(masterConfig, conf);
 # 678 "kind.ag"
 
 # 679 "kind.ag"
-      string logSizeFile = conf.getString("logSize");
+      banks = conf.getStrings("bank");
 # 680 "kind.ag"
-      if (!logSizeFile.empty())
+      if (banks.empty())
 # 681 "kind.ag"
-        readSizes(logSizeFile);
+        throw Exception("read master configuration", "no banks defined");
 # 682 "kind.ag"
 
 # 683 "kind.ag"
-      vector<string> vaults;
+      if (listConfig)
 # 684 "kind.ag"
-      string groupname = "group_" + vault;
+        {
 # 685 "kind.ag"
-      if (conf.hasKey(groupname))
+          cout << "global config:" << endl;
 # 686 "kind.ag"
-        vaults = conf.getStrings(groupname);
+          conf.print(".   ");
 # 687 "kind.ag"
-      else
+          readVaultConfig(vault, conf);
 # 688 "kind.ag"
-        vaults.push_back(vault);
+          cout << "vault config:" << endl;
 # 689 "kind.ag"
-
+          conf.print(".   ");
 # 690 "kind.ag"
-      if (doBackup)
+          exit(0);
 # 691 "kind.ag"
-        for (string vault : vaults)
+        }
 # 692 "kind.ag"
-          {
+
 # 693 "kind.ag"
-            backupVault(vault, conf, imageTime, fullImage, forcedBackupSet);
+      lockFile = conf.getString("lockfile");
 # 694 "kind.ag"
-            writeSizes(logSizeFile);
+      createLock(lockFile);
 # 695 "kind.ag"
-          }
+
 # 696 "kind.ag"
-
+      DateTime imageTime = DateTime::now();
 # 697 "kind.ag"
-      if (doExpire)
+
 # 698 "kind.ag"
-        for (unsigned int i = 0; i < vaults.size(); ++i)
+      string logSizeFile = conf.getString("logSize");
 # 699 "kind.ag"
-          expireVault(vaults[i], conf, imageTime);
+      if (!logSizeFile.empty())
 # 700 "kind.ag"
-
+        readSizes(logSizeFile);
 # 701 "kind.ag"
-      if (!quiet)
-# 702 "kind.ag"
-        cout << DateTime::now().getString('h') << ": finished" << endl;
-# 703 "kind.ag"
 
+# 702 "kind.ag"
+      vector<string> vaults;
+# 703 "kind.ag"
+      string groupname = "group_" + vault;
 # 704 "kind.ag"
-    }
+      if (conf.hasKey(groupname))
 # 705 "kind.ag"
-  catch (const Exception& ex)
+        vaults = conf.getStrings(groupname);
 # 706 "kind.ag"
-    {
+      else
 # 707 "kind.ag"
-      cerr << "Exception: " << ex.what() << endl;
+        vaults.push_back(vault);
 # 708 "kind.ag"
-      exitCode = 1;
+
 # 709 "kind.ag"
-    }
+      if (doBackup)
 # 710 "kind.ag"
-  catch (const char* msg)
+        for (string vault : vaults)
 # 711 "kind.ag"
-    {
+          {
 # 712 "kind.ag"
-      cerr << "Exception(char*): " << msg << endl;
+            backupVault(vault, conf, imageTime, fullImage, forcedBackupSet);
 # 713 "kind.ag"
-      exitCode = 1;
+            writeSizes(logSizeFile);
 # 714 "kind.ag"
-    }
+          }
 # 715 "kind.ag"
-  catch (const string& msg)
+
 # 716 "kind.ag"
-    {
+      if (doExpire)
 # 717 "kind.ag"
-      cerr << "Exception(string): " << msg << endl;
+        for (unsigned int i = 0; i < vaults.size(); ++i)
 # 718 "kind.ag"
-      exitCode = 1;
+          expireVault(vaults[i], conf, imageTime);
 # 719 "kind.ag"
-    }
+
 # 720 "kind.ag"
-  removeLock(lockFile);
+      if (!quiet)
 # 721 "kind.ag"
-  return exitCode;
+        cout << DateTime::now().getString('h') << ": finished" << endl;
 # 722 "kind.ag"
+
+# 723 "kind.ag"
+    }
+# 724 "kind.ag"
+  catch (const Exception& ex)
+# 725 "kind.ag"
+    {
+# 726 "kind.ag"
+      cerr << "Exception: " << ex.what() << endl;
+# 727 "kind.ag"
+      exitCode = 1;
+# 728 "kind.ag"
+    }
+# 729 "kind.ag"
+  catch (const char* msg)
+# 730 "kind.ag"
+    {
+# 731 "kind.ag"
+      cerr << "Exception(char*): " << msg << endl;
+# 732 "kind.ag"
+      exitCode = 1;
+# 733 "kind.ag"
+    }
+# 734 "kind.ag"
+  catch (const string& msg)
+# 735 "kind.ag"
+    {
+# 736 "kind.ag"
+      cerr << "Exception(string): " << msg << endl;
+# 737 "kind.ag"
+      exitCode = 1;
+# 738 "kind.ag"
+    }
+# 739 "kind.ag"
+  removeLock(lockFile);
+# 740 "kind.ag"
+  return exitCode;
+# 741 "kind.ag"
 }
