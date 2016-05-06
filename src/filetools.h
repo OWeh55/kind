@@ -27,9 +27,14 @@ void file2Strings(const std::string& fn, std::vector<std::string>& s);
 bool dirExists(const std::string& name);
 bool fileExists(const std::string& name);
 
-Strings myPopen(const std::string& cmd,
-                int& rc, bool debug,
-                const std::string& logfn = "");
+Strings localExec(const std::string& cmd,
+                  int& rc, bool debug,
+                  const std::string& logfn = "");
+
+Strings remoteExec(const std::string& rshCommand,
+                   const std::string& cmd,
+                   int& rc, bool debug,
+                   const std::string& logfn = "");
 
 void removeLock(const std::string& lockfilename);
 void createLock(const std::string& lockfilename);

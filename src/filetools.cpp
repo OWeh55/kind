@@ -208,9 +208,9 @@ int removeDir(const std::string& path)
 }
 
 #define POPEN_BUFFER_SIZE 2000
-Strings myPopen(const std::string& cmd,
-                int& rc, bool debug,
-                const std::string& logfn)
+Strings localExec(const std::string& cmd,
+                  int& rc, bool debug,
+                  const std::string& logfn)
 {
   if (debug)
     std::cout << "Executing " << cmd << std::endl;
@@ -259,4 +259,13 @@ Strings myPopen(const std::string& cmd,
       log << "result code: " << rc << std::endl;
     }
   return res;
+}
+
+Strings remoteExec(const std::string& rshCommand,
+                   const std::string& cmd,
+                   int& rc, bool debug,
+                   const std::string& logfn)
+{
+
+  return localExec(rshCommand + " " + cmd, rc, debug, logfn);
 }
