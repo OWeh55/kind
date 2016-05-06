@@ -61,22 +61,31 @@ using namespace std;
 
 Strings banks;
 
+string findVault(const string& v);
+
 typedef pair<long int, long int> Sizes;
 map<string, Sizes> sizes;
 
 void readSizes(const string& logSizeFile)
 {
-  if (fileExists(logSizeFile))
+  if (!logSizeFile.empty() && fileExists(logSizeFile))
     {
       vector<string> ss;
       file2Strings(logSizeFile, ss);
       for (const string& s : ss)
         {
           unsigned int i = 0;
-          string v = getWord(s, i);
+          string vault = getWord(s, i);
           long int s1 = getLongInt(s, i);
           long int s2 = getLongInt(s, i);
-          sizes[v] = Sizes(s1, s2);
+	  try {
+	    findVault(vault);
+	    sizes[vault] = Sizes(s1, s2);
+	  }
+	  catch(...)
+	    {
+	      // ignore missing vaults
+	    }
         }
     }
 }
@@ -212,21 +221,13 @@ void listImageInfo(const string& vault,
   readVaultConfig(vault, conf);
   string vaultPath = findVault(vault);
   Images imageList = findImages(vaultPath, conf, true);
+  cout << "---"<<endl;
   for (auto img : imageList)
     {
       if (img.series == backupSet || backupSet.empty())
         {
-          cout << img.name << endl;
-          if (img.valid)
-            {
-              if (img.series != "expire")
-                cout << "backup set: " << img.series << endl;
-              cout << "created: " << img.time.getString() << endl;
-              cout << "expires: " << img.expire.getString() << " -  +" << timeString(img.expire - imageTime) << endl;
-            }
-
-          else
-            cout << "invalid" << endl;
+	  img.printInfo();
+	  cout << "---"<<endl;
         }
     }
 }
@@ -420,7 +421,7 @@ void doBackup(const string& vault,
     cout << "Not executing " << rsyncCmd << endl;
 }
 
-void backupVault(const string& vault,
+bool backupVault(const string& vault,
                  KindConfig conf /*Copy!*/ ,
                  const DateTime& imageTime,
                  bool fullImage,
@@ -525,7 +526,6 @@ void backupVault(const string& vault,
 
       if (backupNow)
         {
-
           // find reference image
           string referenceImage;
           if (!fullImage)
@@ -583,10 +583,12 @@ void backupVault(const string& vault,
               expireFile << rule << endl;
             }
         }
+      return backupNow;
     }
   catch (Exception ex)
     {
       cerr << "Exception in vault " << vault << ": " << ex.what() << endl;
+      return false;
     }
 }
 
@@ -610,7 +612,10 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
 
   for (Image image : imagelist)
     {
-      debugPrint(image.name);
+      if (debug)
+	{
+	  image.printInfo();
+	}
 
       DateTime imageTime = image.time;
 
@@ -634,13 +639,6 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
               debugPrint("- valid image");
               expireTime = image.expire;
               expireRule = image.expireRule;
-            }
-
-          if (debug)
-            {
-              cout << "    image: " << imageTime.getString('h') << endl;
-              cout << "      expire: " << expireTime.getString('h') << " " << expireRule << endl;
-              cout << "      now: " << now.getString('h') << endl;
             }
 
           if (expireTime < now)
@@ -733,8 +731,7 @@ int main(int argc, char* argv[])
       createLock(lockFile);
 
       string logSizeFile = conf.getString("logSize");
-      if (!logSizeFile.empty())
-        readSizes(logSizeFile);
+      readSizes(logSizeFile);
 
       vector<string> vaults;
       string groupname = "group_" + vault;
@@ -743,16 +740,15 @@ int main(int argc, char* argv[])
       else
         vaults.push_back(vault);
 
-      if (doBackup)
-        for (string vault : vaults)
-          {
-            backupVault(vault, conf, imageTime, fullImage, forcedBackupSet);
-            writeSizes(logSizeFile);
-          }
 
-      if (doExpire)
-        for (unsigned int i = 0; i < vaults.size(); ++i)
-          expireVault(vaults[i], conf, imageTime);
+      for (string vault : vaults)
+	{
+	  if (doBackup)
+	    if (backupVault(vault, conf, imageTime, fullImage, forcedBackupSet))
+	      writeSizes(logSizeFile);
+	  if (doExpire)
+	    expireVault(vault, conf, imageTime);
+	}
 
       if (!quiet)
         cout << DateTime::now().getString('h') << ": finished" << endl;

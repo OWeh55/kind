@@ -197,6 +197,12 @@ time_t stot(const string& str)
 
 string timeString(time_t t)
 {
+  string res;
+  if (t<0)
+    {
+      res="- ";
+      t = -t;
+    }
   int sec = t % 60;
   t /= 60;
   int min = t % 60;
@@ -204,7 +210,6 @@ string timeString(time_t t)
   int hour = t % 24;
   t /= 24;
   int days = t;
-  string res;
   if (days > 0)
     res += to_string(days) + " days ";
   if (hour > 0)
@@ -234,6 +239,7 @@ long int getNumber(const string& l)
     {
       // we ignore overflow here because value is only informative
       cout << "stol failed on " << l << endl;
+      res = -1;
     }
   return res;
 }

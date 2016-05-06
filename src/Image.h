@@ -18,6 +18,9 @@ public:
   bool valid;
   DateTime expire;
   std::string expireRule;
+
+  void printInfo() const;
+
   friend bool operator<(const Image& i1, const Image& i2)
   {
     return i1.time < i2.time;
