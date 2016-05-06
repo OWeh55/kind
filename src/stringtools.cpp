@@ -198,9 +198,9 @@ time_t stot(const string& str)
 string timeString(time_t t)
 {
   string res;
-  if (t<0)
+  if (t < 0)
     {
-      res="- ";
+      res = "- ";
       t = -t;
     }
   int sec = t % 60;

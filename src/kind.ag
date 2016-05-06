@@ -78,14 +78,15 @@ void readSizes(const string& logSizeFile)
           string vault = getWord(s, i);
           long int s1 = getLongInt(s, i);
           long int s2 = getLongInt(s, i);
-	  try {
-	    findVault(vault);
-	    sizes[vault] = Sizes(s1, s2);
-	  }
-	  catch(...)
-	    {
-	      // ignore missing vaults
-	    }
+          try
+            {
+              findVault(vault);
+              sizes[vault] = Sizes(s1, s2);
+            }
+          catch (...)
+            {
+              // ignore missing vaults
+            }
         }
     }
 }
@@ -221,13 +222,13 @@ void listImageInfo(const string& vault,
   readVaultConfig(vault, conf);
   string vaultPath = findVault(vault);
   Images imageList = findImages(vaultPath, conf, true);
-  cout << "---"<<endl;
+  cout << "---" << endl;
   for (auto img : imageList)
     {
       if (img.series == backupSet || backupSet.empty())
         {
-	  img.printInfo();
-	  cout << "---"<<endl;
+          img.printInfo();
+          cout << "---" << endl;
         }
     }
 }
@@ -613,9 +614,7 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
   for (Image image : imagelist)
     {
       if (debug)
-	{
-	  image.printInfo();
-	}
+        image.printInfo();
 
       DateTime imageTime = image.time;
 
@@ -742,13 +741,13 @@ int main(int argc, char* argv[])
 
 
       for (string vault : vaults)
-	{
-	  if (doBackup)
-	    if (backupVault(vault, conf, imageTime, fullImage, forcedBackupSet))
-	      writeSizes(logSizeFile);
-	  if (doExpire)
-	    expireVault(vault, conf, imageTime);
-	}
+        {
+          if (doBackup)
+            if (backupVault(vault, conf, imageTime, fullImage, forcedBackupSet))
+              writeSizes(logSizeFile);
+          if (doExpire)
+            expireVault(vault, conf, imageTime);
+        }
 
       if (!quiet)
         cout << DateTime::now().getString('h') << ": finished" << endl;

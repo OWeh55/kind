@@ -168,21 +168,21 @@ void readSizes(const string& logSizeFile)
 # 80 "kind.ag"
           long int s2 = getLongInt(s, i);
 # 81 "kind.ag"
-	  try {
+          try {
 # 82 "kind.ag"
-	    findVault(vault);
+              findVault(vault);
 # 83 "kind.ag"
-	    sizes[vault] = Sizes(s1, s2);
+              sizes[vault] = Sizes(s1, s2);
 # 84 "kind.ag"
-	  }
+            }
 # 85 "kind.ag"
-	  catch(...)
+          catch (...)
 # 86 "kind.ag"
-	    {
+            {
 # 87 "kind.ag"
-	      // ignore missing vaults
+              // ignore missing vaults
 # 88 "kind.ag"
-	    }
+            }
 # 89 "kind.ag"
         }
 # 90 "kind.ag"
@@ -454,7 +454,7 @@ void listImageInfo(const string& vault,
 # 223 "kind.ag"
   Images imageList = findImages(vaultPath, conf, true);
 # 224 "kind.ag"
-  cout << "---"<<endl;
+  cout << "---" << endl;
 # 225 "kind.ag"
   for (auto img : imageList)
 # 226 "kind.ag"
@@ -464,9 +464,9 @@ void listImageInfo(const string& vault,
 # 228 "kind.ag"
         {
 # 229 "kind.ag"
-	  img.printInfo();
+          img.printInfo();
 # 230 "kind.ag"
-	  cout << "---"<<endl;
+          cout << "---" << endl;
 # 231 "kind.ag"
         }
 # 232 "kind.ag"
@@ -634,7 +634,7 @@ void doBackup(const string& vault,
 # 313 "kind.ag"
       string userAtHost = conf.getString("user") + "@" +
 # 314 "kind.ag"
-                          conf.getString("host");
+      conf.getString("host");
 # 315 "kind.ag"
       string rshCommand = remoteShell;
 # 316 "kind.ag"
@@ -806,9 +806,9 @@ void doBackup(const string& vault,
 # 399 "kind.ag"
       if (rc == 0 ||
 # 400 "kind.ag"
-          rc == 24 || // "no error" or "vanished source files" (ignored)
+      rc == 24 || // "no error" or "vanished source files" (ignored)
 # 401 "kind.ag"
-          rc == 6144) // workaround for wrong exit code ??!!
+      rc == 6144) // workaround for wrong exit code ??!!
 # 402 "kind.ag"
         {
 # 403 "kind.ag"
@@ -1238,11 +1238,11 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
 # 615 "kind.ag"
       if (debug)
 # 616 "kind.ag"
-	{
+        {
 # 617 "kind.ag"
-	  image.printInfo();
+          image.printInfo();
 # 618 "kind.ag"
-	}
+        }
 # 619 "kind.ag"
 
 # 620 "kind.ag"
@@ -1252,7 +1252,7 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
 # 622 "kind.ag"
       if (imageTime != now &&          // ignore just created image
 # 623 "kind.ag"
-          image.name != lastValidImage // ignore last valid image
+      image.name != lastValidImage // ignore last valid image
 # 624 "kind.ag"
          )
 # 625 "kind.ag"
@@ -1389,15 +1389,15 @@ void usage()
   exit(1);
 }
 
-void error(const string &msg)
+void error(const string& msg)
 {
   cout << endl << ag_programName << " - error: " << msg << endl << endl;
   usage();
 }
 
-int ptoi(const char *para)
+int ptoi(const char* para)
 {
-  char *end;
+  char* end;
   int res = strtol(para, &end, 10);
   if (end == para)
     error(string("no int: ") + para);
@@ -1406,9 +1406,9 @@ int ptoi(const char *para)
   return res;
 }
 
-double ptod(const char *para)
+double ptod(const char* para)
 {
-  char *end;
+  char* end;
   double res = strtod(para, &end);
   if (end == para)
     error(string("no double: ") + para);
@@ -1417,17 +1417,17 @@ double ptod(const char *para)
   return res;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-string masterConfig = "";
-bool fullImage = false;
-bool doBackup = false;
-bool doExpire = false;
-bool listConfig = false;
-bool listImages = false;
-string forcedBackupSet = "";
+  string masterConfig = "";
+  bool fullImage = false;
+  bool doBackup = false;
+  bool doExpire = false;
+  bool listConfig = false;
+  bool listImages = false;
+  string forcedBackupSet = "";
 
-string vault = "";
+  string vault = "";
   static struct option ag_long_options[] =
   {
     {"masterconfig", required_argument, 0, 'c' },
@@ -1458,52 +1458,52 @@ string vault = "";
           error("Expecting option parameter");
           break;
         case 'c':
-              masterConfig = optarg;
-              break;
+          masterConfig = optarg;
+          break;
 
         case 'f':
-              fullImage = true;
-              break;
+          fullImage = true;
+          break;
 
         case 'B':
-              doBackup = true;
-              break;
+          doBackup = true;
+          break;
 
         case 'E':
-              doExpire = true;
-              break;
+          doExpire = true;
+          break;
 
         case 'C':
-              listConfig = true;
-              break;
+          listConfig = true;
+          break;
 
         case 'I':
-              listImages = true;
-              break;
+          listImages = true;
+          break;
 
         case 'D':
-              dryRun = true;
-              break;
+          dryRun = true;
+          break;
 
         case 'F':
-              forcedBackupSet = optarg;
-              break;
+          forcedBackupSet = optarg;
+          break;
 
         case 'v':
-              verbose = true;
-              break;
+          verbose = true;
+          break;
 
         case 'd':
-              debug = true;
-              break;
+          debug = true;
+          break;
 
         case 'q':
-              quiet = true;
-              break;
+          quiet = true;
+          break;
 
         case 'h':
-              usage();
-              break;
+          usage();
+          break;
 
         default:
           error("error in options");
@@ -1513,7 +1513,7 @@ string vault = "";
     vault = argv[optind++];
   else error("Parameter vault_or_group needed");
 
-/*AppGen:MainEnd*/
+  /*AppGen:MainEnd*/
 # 668 "kind.ag"
 
 # 669 "kind.ag"
@@ -1669,19 +1669,19 @@ string vault = "";
 # 744 "kind.ag"
       for (string vault : vaults)
 # 745 "kind.ag"
-	{
+        {
 # 746 "kind.ag"
-	  if (doBackup)
+          if (doBackup)
 # 747 "kind.ag"
-	    if (backupVault(vault, conf, imageTime, fullImage, forcedBackupSet))
+            if (backupVault(vault, conf, imageTime, fullImage, forcedBackupSet))
 # 748 "kind.ag"
-	      writeSizes(logSizeFile);
+              writeSizes(logSizeFile);
 # 749 "kind.ag"
-	  if (doExpire)
+          if (doExpire)
 # 750 "kind.ag"
-	    expireVault(vault, conf, imageTime);
+            expireVault(vault, conf, imageTime);
 # 751 "kind.ag"
-	}
+        }
 # 752 "kind.ag"
 
 # 753 "kind.ag"

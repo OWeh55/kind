@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <set>
 
 #include "Exception.h"
 #include "KindConfig.h"
@@ -11,16 +13,16 @@ KindConfig::KindConfig(const std::string& fn)
   addFile(fn);
 }
 
-KindConfig::KindConfig(std::istream& is)
+void KindConfig::addFile(const std::string& fn)
 {
-  // settings.clear();
-  addFile(is);
-}
+  ifstream is(fn);
+  if (!is.good())
+    throw Exception("read config", string("Cannot open ") + fn + " for reading");
 
-void KindConfig::addFile(std::istream& is)
-{
   string line;
   string lastkey;
+  set<string> usedKeys;
+
   while (getline(is, line))
     {
       line = trim(line);
@@ -35,20 +37,18 @@ void KindConfig::addFile(std::istream& is)
             throw Exception("read config", "empty key");
 
           if (del == "=")
-            settings[key].clear();
+            {
+              if (usedKeys.count(key) != 0)
+                throw Exception("Read config file " + fn, "entry overrides existing key \"" + key + "\"");
+              // clear previous entries
+              settings[key].clear();
+            }
 
           settings[key].push_back(value);
+          usedKeys.insert(key);
           lastkey = key;
         }
     }
-}
-
-void KindConfig::addFile(const std::string& fn)
-{
-  ifstream is(fn);
-  if (!is.good())
-    throw Exception("read config", string("Cannot open ") + fn + " for reading");
-  addFile(is);
 }
 
 bool KindConfig::hasKey(std::string key) const

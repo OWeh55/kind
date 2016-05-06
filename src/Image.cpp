@@ -38,11 +38,11 @@ void Image::printInfo() const
   if (valid)
     {
       if (series != "expire")
-	cout << "backup set: " << series << endl;
+        cout << "backup set: " << series << endl;
       cout << "created: " << time.getString('h') << endl;
       cout << "expires: " << expire.getString('h') << " -  " << timeString(expire - DateTime::now()) << endl;
     }
-  
+
   else
     cout << "invalid" << endl;
 }
