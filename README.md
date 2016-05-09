@@ -56,6 +56,7 @@ copy man/kind.conf.5 to /usr/share/man/man5
 ```
     host=[client host]
     user=[backup user]
+    path=[path to backup on client]
 ```
 - Run kind (on server) first time:
 ```
