@@ -225,13 +225,23 @@ string timeString(time_t t)
   int hour = t % 24;
   t /= 24;
   int days = t;
+  int nParts = 0;
   if (days > 0)
-    res += to_string(days) + " days ";
+    {
+      res += to_string(days) + " days ";
+      nParts++;
+    }
   if (hour > 0)
-    res += to_string(hour) + " hours ";
-  if (min > 0)
-    res += to_string(min) + " minutes ";
-  if (sec > 0 || res.empty())
+    {
+      res += to_string(hour) + " hours ";
+      nParts++;
+    }
+  if (min > 0 && nParts < 2)
+    {
+      res += to_string(min) + " minutes ";
+      nParts++;
+    }
+  if ((sec > 0 && nParts < 2) || nParts == 0)
     res += to_string(sec) + " seconds ";
   return res;
 }

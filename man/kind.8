@@ -40,27 +40,30 @@ kind \- kind is no dirvish
 [
 .I OPTIONS
 ]
-.I vault
+.I vault_or_group
 .SH DESCRIPTION
 .P
-Create a backup image of a client directory tree.
+Create a backup image of a client directory tree. If configured
+a group name may be given as parameter to backup all group members.
 .P
-Each image is a directory containing transfer
+Each image is a directory containing
 .BR rsync-log,
+.BR expires,
 .B tree
 and if errors were detected an
 .B error
 file.
 The 
 .B rsync-log
-retains the the output of rsync listing all files that were changed or added with some statistical information.
+retains the the output of rsync listing all files that were changed 
+or added with some statistical information.
 Tree is the copy of the client tree.
 .P
 The client directory tree is compared with an existing image
 to create a new image.
 Unchanged files are shared between images.
-For changed files
-only those parts that actually change are transfered over the network.
+For changed files only those parts that actually change are 
+transfered over the network.
 Unchanged portions of files are copied from the reference image.
 .P
 The resulting images contain complete copies of the original trees
@@ -94,11 +97,24 @@ Don't actually do anything.
 Process all configuration files, options and tests
 then produce a summary on standard output and exit.
 .TP
-.D backuponly
-Only backup, no expire
+.D backup
+Backup given vault[s]
 .TP
-.D expireonly
-Only expire, no backup
+.D expire
+Expire given vault[s]
+.TP
+.D listconfig
+Show configuration for vault.
+.TP
+.D listimages
+Show data about all images of vault[s].
+
+if neither of --backup, --expire, --listconfig or --listimages is 
+given, kind does backup and expire.
+
+.TP
+.D help
+Print help and all available options.
 .TP
 .D version
 Print version string and exit.
@@ -128,11 +144,11 @@ actual image of source directory tree.
 .nf
 ssh(1)
 rsync(1)
+kind.conf(5)
 .SH AUTHOR
 kind was created by Wolfgang Ortmann.
 .SH BUGS AND ISSUES
-In order to preserve permissions
-it is necessary for kind to run as root
+In order to preserve permissions it is necessary for kind to run as root
 on the backup server.
 
 For an automated backup process the root user must have 

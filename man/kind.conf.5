@@ -75,8 +75,8 @@ Each value must be provided on its own line.
 Any leading and trailing whitespace is discarded for keys and values.
 Blank lines and lines starting with '#' are ignored.
 
-On startup disu will first load a master configuration file
-.B /etc/d2/master.conf
+On startup kind will first load a master configuration file
+.B /etc/kind/master.conf
 
 Each vault must have an own configuration file, which must specify 
 at least the host and path to backup.
@@ -85,7 +85,7 @@ at least the host and path to backup.
 Boolean values need to specified as
 .B true
 or
-.B false
+.B false .
 Specifying an boolean option with an empty value is also interpreted as true.
 
 Each option is marked here with one of (B) for Boolean, (S)
@@ -96,7 +96,7 @@ single value, (L) list.
 Specify paths to directories containing vaults.
 
 A \*[bank] is a directory containing one or more \*[vault]s.
-The system supports multiple \*[bank]s
+kind supports multiple \*[bank]s
 so that filesystem mount-points can be managed more effectively.
 
 When a \*[vault] is specified the \*[bank]s will be searched
@@ -107,15 +107,19 @@ or added without having to update a master index.
 .multiple bank
 .TP
 .Bi host hostname (S)
-specify a host from which to back up.
+specify a host to back up from using ssh. 
+
+.TP
+.Bi server hostname (S)
+specify a host running rsync as server to backup from.
 
 .TP
 .Bi user username (S)
-specify a user for login on host.
+specify a user for login on client.
 
 .TP
 .Bi path path (S)
-specify the path on host from which to back up. Use absolute path
+specify the path on client from which to back up. Use absolute path
 starting with '/'.
 
 .TP
@@ -129,7 +133,7 @@ Patterns are based on shell glob with some enhancements.
 .multiple exclude
 .TP
 .Bi userExcludeFile excludefilename (S)
-Load a set of patterns from a file from host:path.
+Load a set of patterns from a file from client.
 
 .TP
 .Bi expireFailedImage time period (S)
@@ -144,6 +148,13 @@ specify rules for expiration.
 
 .multiple expire\-rule
 .TP
+.Bi setRule backup set rule (L)
+This defines a backup set, which is another way to describe images and
+their lifetime.
+
+.See "BACKUP SETS"
+
+.TP
 .Bi imageName name_of_images (S)
 Specify a name for the \*[image]. The name must 
 not contain the '-' sign. The image name will
@@ -152,7 +163,7 @@ image\-2016-03-09-20.
 
 .TP
 .Bi longImageName true (B)
-Image time is added to the image name as YEAR-MONTH-DAY-hour.
+Normally Image time is added to the image name as YEAR-MONTH-DAY-hour.
 If longImageName is true the values for minute and second are added.
 
 .default false
@@ -174,12 +185,9 @@ This can be used to specify the location of
 .B ssh
 or
 .B rsh
-and/or to provide additional options for said utility
-such as
-.Bi \-p port
-for
-.B ssh
-to use an alternate port number.
+and/or to provide additional options like in
+.Bi ssh \-p 2223
+to use ssh on an alternative port number.
 
 .default ssh
 
@@ -191,7 +199,7 @@ and find excludes.
 .Bi rsyncOption option[s] (L)
 Specify additional options for the rsync command.
 
-This allows you to use rsync features that are not directly 
+This allows to use rsync features that are not directly 
 supported by kind.
 
 .multiple rsyncOption
@@ -213,12 +221,16 @@ This allows rules to be set in master configuration and
 rules in \*[vault] configuration files will override rules set in the
 master configuration file.
 
-Each rule has an pattern expression against which the image
-time is compared followed by a time period specifier.
+Expire time is determined at time of creation. Image time is compared
+to a pattern defined in expire rules and if the image time matches, 
+the rule is applied giving a lifetime of the image.
 
 Values for the image time pattern are hour, day of week, day of month
-and month. Each of these may be a single value or a '*', where '*' 
+and month. Each of these may be a single value, a range or a '*', where '*' 
 means "any value". 
+Values for weekday or month may be given as word like "monday" or "july".
+Ranges are given as 2-7, possibly extended by a distance like /2. 
+E.g. 2-15/3 means values 2, 5, 8, 11, 14.
 Time periods for expiring may be given in seconds or multiple of
 minute, hour, day, week, month(=30 days) or year(=365 days).
 
@@ -227,30 +239,43 @@ Here are examples of a expire\-rules:
 .nf
 .ft CR
 .ta .5i T 6m
-	#hour	DayOfWeek DayOfMonth	Month	EXPIRE
-	*	*	1		1	5 years
-	*	sunday	*		*	1 month
-	*	*	16		*	1 year
-	10	*	*		*	1 days
-.ft R
+                #hour DayOfWeek DayOfMonth Month	EXPIRE
+expireRule =    20-5    *        1          1   5 years
+expireRule +=   *       sunday   *          *   1 month
+expireRule +=   *       *        */7        *   1 year
+expireRule +=   10      *        *          *   1 days
+.ft Rq
 .fi
 
-It should be noted that (if not disabled) after backup all images
-are compared to expire rules and last match gives expire period. 
-If the expire date is reached, the image will be removed.
+.SH BACKUP SETS
+Backup sets are another way to describe lifetime of images. It is
+possible to define a number of backup sets, e.g. as "daily", "weekly" and
+"monthly". A backup set has a value for then time between to backups  
+and a value for the time to keep the images.
+
+This is given as
+.nf
+.ft CR
+.ta .5i T 6m
+#          name      rate     keep
+setRule =  daily:   1 day:   1 week
+setRule += weekly:  1 week:  1 months
+setRule += monthly: 1 month: 1 year
+.ft Rq
+.fi
 
 .SH FILES
 .TP
-.B /etc/d2/master.conf
+.B /etc/kind/master.conf
 default master configuration file.
 .TP
-.IB bank/vault/ d2/vault.conf
+.B bank/vault/kind/vault.conf
 default vault configuration file.
 .TP
-.IB bank/vault/image/ tree
+.B bank/vault/image/tree
 actual image of source directory tree.
 .TP
-.IB bank/vault/image/ rsync-log
+.B bank/vault/image/rsync-log
 output from rsync
 
 .SH SEE ALSO

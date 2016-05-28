@@ -227,7 +227,7 @@ void listImageInfo(const string& vault,
   readVaultConfig(vault, conf);
   string vaultPath = findVault(vault);
   Images imageList = findImages(vaultPath, conf, true);
-  cout << "---" << endl;
+  cout << "== " << vault << " ==" << endl;
   for (auto img : imageList)
     {
       if (img.series == backupSet || backupSet.empty())
@@ -673,13 +673,28 @@ int main(int argc, char* argv[])
       if (banks.empty())
         throw Exception("read master configuration", "no banks defined");
 
+      vector<string> vaults;
+      string groupname = "group_" + vault;
+      if (conf.hasKey(groupname))
+        {
+          vaults = conf.getStrings(groupname);
+          vault.clear(); // no single vault but group
+        }
+      else
+        vaults.push_back(vault);
+
       if (listConfig)
         {
           cout << "global config:" << endl;
           conf.print(".   ");
-          readVaultConfig(vault, conf);
-          cout << "vault config:" << endl;
-          conf.print(".   ");
+          if (!vault.empty())
+            {
+              readVaultConfig(vault, conf);
+              cout << "vault config:" << endl;
+              conf.print(".   ");
+            }
+          else
+            cout << "specify single vault (not group) to see vault config" << endl;
           exit(0);
         }
 
@@ -687,23 +702,17 @@ int main(int argc, char* argv[])
 
       if (listImages)
         {
-          listImageInfo(vault, conf, imageTime, forcedBackupSet);
+          for (string vault : vaults)
+            listImageInfo(vault, conf, imageTime, forcedBackupSet);
           exit(0);
         }
 
+      // previous actions do not need locking
       lockFile = conf.getString("lockfile");
       createLock(lockFile);
 
       string logSizeFile = conf.getString("logSize");
       readSizes(logSizeFile);
-
-      vector<string> vaults;
-      string groupname = "group_" + vault;
-      if (conf.hasKey(groupname))
-        vaults = conf.getStrings(groupname);
-      else
-        vaults.push_back(vault);
-
 
       for (string vault : vaults)
         {

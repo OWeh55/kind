@@ -19,7 +19,7 @@ to the clients without password (using public key authentication).
 If the client runs rsync as server it must be configured to allow the
 server to read the modules to backup. 
 
-**Windows** clients can backed up using **DeltaCopy** as rsync server.
+**Windows** clients can be backed up using **DeltaCopy** as rsync server on Windows.
 
 ##Installation
 
@@ -47,16 +47,20 @@ copy man/kind.conf.5 to /usr/share/man/man5
 
 ##Usage
 - Create a directory used as "bank" on a filesystem with enough space
-- Create a master config file /etc/kind/master.conf, containing at least the bank:
+- Create a master config file /etc/kind/master.conf, containing at 
+least the bank:
 ```
     bank=/disk1/kind
 ```
-- Create a subdirectory of the bank as "vault" for one backup
-- Create a subdirectory kind in the vault directory
-- Create a vault config file /[bank]/[vault]/kind/vault.conf, containing
+- Create one or more subdirectories of the bank as "vault" for the backups
+- Create a subdirectory kind in each vault directory
+- Create a vault config files /[bank]/[vault]/kind/vault.conf, containing
 ```
     host=[client host]
+
     user=[backup user on client]
+    path=[path to backup on client]
+
 ```
 - Run kind (on server) first time:
 ```
