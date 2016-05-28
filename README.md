@@ -23,14 +23,15 @@ server to read the modules to backup.
 
 ##Installation
 
-Make sure, that rsync, ssh and find is installed correctly on server and clients.
+Make sure, that rsync, ssh and find are installed correctly on server and clients.
 
-Make sure, that the backup user can login from server to the client host[s] without password (using public key authentication)
+Make sure, that the backup user can login from server to the client host[s] 
+without password (using public key authentication)
 
 clone the repository and build kind using
 ```
 - make dep
-- make 
+- make
 ```
 in the directory src. Copy kind to a directory on server (e.g. /usr/sbin)
 
@@ -55,7 +56,7 @@ copy man/kind.conf.5 to /usr/share/man/man5
 - Create a vault config file /[bank]/[vault]/kind/vault.conf, containing
 ```
     host=[client host]
-    user=[backup user]
+    user=[backup user on client]
 ```
 - Run kind (on server) first time:
 ```
