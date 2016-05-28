@@ -126,15 +126,15 @@ long int getLongInt(const string& s, unsigned int& i)
 
 double getDouble(const string& s, unsigned int& i)
 {
-  if (!isdigit(s[i]) && s[i]!='-')
-    throw Exception("getDouble", "digit expected in " );
+  if (!isdigit(s[i]) && s[i] != '-')
+    throw Exception("getDouble", "digit expected in ");
   string is;
-  while (i < s.size() && (isdigit(s[i]) || s[i]=='-' || s[i]=='.' || s[i]=='e' || s[i]=='E'))
+  while (i < s.size() && (isdigit(s[i]) || s[i] == '-' || s[i] == '.' || s[i] == 'e' || s[i] == 'E'))
     {
       is += s[i];
       ++i;
     }
-  double res = stof(is);
+  double res = stod(is);
   skipWS(s, i);
   return res;
 }
