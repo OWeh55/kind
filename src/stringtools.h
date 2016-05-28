@@ -40,12 +40,15 @@ int getInt(const std::string& s, unsigned int& i);
 // read long int value
 long int getLongInt(const std::string& s, unsigned int& i);
 
+// read long int value
+double getDouble(const std::string& s, unsigned int& i);
+
 // read word (series of letters)
 std::string getWord(const std::string& s, unsigned int& i);
 
 // pick all digits from a string and convert to long int
 // quick and dirty solution to read formatted ints like "1,000,000"
-long int getNumber(const std::string& l);
+double getNumber(const std::string& l);
 
 // compares first characters of s with the string start
 bool startsWith(const std::string& s, const std::string& start);

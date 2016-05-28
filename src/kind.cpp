@@ -144,431 +144,431 @@ string findVault(const string& v);
 # 68 "kind.ag"
 
 # 69 "kind.ag"
-typedef pair<long int, long int> Sizes;
+// we use double for sizes (in byte) to avoid overflow
 # 70 "kind.ag"
-map<string, Sizes> sizes;
+// on machines with small int types
 # 71 "kind.ag"
-
+typedef pair<double, double> Sizes;
 # 72 "kind.ag"
-void readSizes(const string& logSizeFile)
+map<string, Sizes> sizes;
 # 73 "kind.ag"
-{
+
 # 74 "kind.ag"
-  if (!logSizeFile.empty() && fileExists(logSizeFile))
+void readSizes(const string& logSizeFile)
 # 75 "kind.ag"
-    {
+{
 # 76 "kind.ag"
-      vector<string> ss;
+  if (!logSizeFile.empty() && fileExists(logSizeFile))
 # 77 "kind.ag"
-      file2Strings(logSizeFile, ss);
+    {
 # 78 "kind.ag"
-      for (const string& s : ss)
+      vector<string> ss;
 # 79 "kind.ag"
-        {
+      file2Strings(logSizeFile, ss);
 # 80 "kind.ag"
-          unsigned int i = 0;
+      for (const string& s : ss)
 # 81 "kind.ag"
-          string vault = getWord(s, i);
-# 82 "kind.ag"
-          long int s1 = getLongInt(s, i);
-# 83 "kind.ag"
-          long int s2 = getLongInt(s, i);
-# 84 "kind.ag"
-          try
-# 85 "kind.ag"
-            {
-# 86 "kind.ag"
-              findVault(vault);
-# 87 "kind.ag"
-              sizes[vault] = Sizes(s1, s2);
-# 88 "kind.ag"
-            }
-# 89 "kind.ag"
-          catch (...)
-# 90 "kind.ag"
-            {
-# 91 "kind.ag"
-              // ignore missing vaults
-# 92 "kind.ag"
-            }
-# 93 "kind.ag"
-        }
-# 94 "kind.ag"
-    }
-# 95 "kind.ag"
-}
-# 96 "kind.ag"
-
-# 97 "kind.ag"
-void writeSizes(const string logSizeFile)
-# 98 "kind.ag"
-{
-# 99 "kind.ag"
-  if (!logSizeFile.empty())
-# 100 "kind.ag"
-    {
-# 101 "kind.ag"
-      Strings st;
-# 102 "kind.ag"
-      for (auto s : sizes)
-# 103 "kind.ag"
         {
-# 104 "kind.ag"
-          string h = s.first + " " + to_string(s.second.first) + " " + to_string(s.second.second);
-# 105 "kind.ag"
-          st.push_back(h);
-# 106 "kind.ag"
+# 82 "kind.ag"
+          unsigned int i = 0;
+# 83 "kind.ag"
+          string vault = getWord(s, i);
+# 84 "kind.ag"
+          double s1 = getDouble(s, i);
+# 85 "kind.ag"
+          double s2 = getDouble(s, i);
+# 86 "kind.ag"
+          try
+# 87 "kind.ag"
+            {
+# 88 "kind.ag"
+              findVault(vault);
+# 89 "kind.ag"
+              sizes[vault] = Sizes(s1, s2);
+# 90 "kind.ag"
+            }
+# 91 "kind.ag"
+          catch (...)
+# 92 "kind.ag"
+            {
+# 93 "kind.ag"
+              // ignore missing vaults
+# 94 "kind.ag"
+            }
+# 95 "kind.ag"
         }
+# 96 "kind.ag"
+    }
+# 97 "kind.ag"
+}
+# 98 "kind.ag"
+
+# 99 "kind.ag"
+void writeSizes(const string logSizeFile)
+# 100 "kind.ag"
+{
+# 101 "kind.ag"
+  if (!logSizeFile.empty())
+# 102 "kind.ag"
+    {
+# 103 "kind.ag"
+      Strings st;
+# 104 "kind.ag"
+      for (auto s : sizes)
+# 105 "kind.ag"
+        {
+# 106 "kind.ag"
+          string h = s.first + " " + to_string(s.second.first) + " " + to_string(s.second.second);
 # 107 "kind.ag"
-      strings2File(st, logSizeFile);
+          st.push_back(h);
 # 108 "kind.ag"
-    }
+        }
 # 109 "kind.ag"
-}
+      strings2File(st, logSizeFile);
 # 110 "kind.ag"
-
+    }
 # 111 "kind.ag"
-void verbosePrint(const string& text)
+}
 # 112 "kind.ag"
-{
+
 # 113 "kind.ag"
-  if (verbose)
+void verbosePrint(const string& text)
 # 114 "kind.ag"
-    cout << "  " << text << endl;
+{
 # 115 "kind.ag"
-}
+  if (verbose)
 # 116 "kind.ag"
-
+    cout << "  " << text << endl;
 # 117 "kind.ag"
-void debugPrint(const string& text)
+}
 # 118 "kind.ag"
-{
+
 # 119 "kind.ag"
-  if (debug)
+void debugPrint(const string& text)
 # 120 "kind.ag"
-    cout << "    " << text << endl;
+{
 # 121 "kind.ag"
-}
+  if (debug)
 # 122 "kind.ag"
-
+    cout << "    " << text << endl;
 # 123 "kind.ag"
-void readMasterConfig1(const string& fn, KindConfig& conf)
+}
 # 124 "kind.ag"
-{
+
 # 125 "kind.ag"
-  verbosePrint("reading master config " + fn);
+void readMasterConfig1(const string& fn, KindConfig& conf)
 # 126 "kind.ag"
-  conf.addFile(fn);
+{
 # 127 "kind.ag"
-}
+  verbosePrint("reading master config " + fn);
 # 128 "kind.ag"
-
+  conf.addFile(fn);
 # 129 "kind.ag"
-void readMasterConfig(const string& fn, KindConfig& conf)
+}
 # 130 "kind.ag"
-{
+
 # 131 "kind.ag"
-  if (!fn.empty())  // master config given by user on commandline
+void readMasterConfig(const string& fn, KindConfig& conf)
 # 132 "kind.ag"
-    readMasterConfig1(fn, conf);
+{
 # 133 "kind.ag"
-  else if (fileExists("/etc/kind/master.conf"))
+  if (!fn.empty())  // master config given by user on commandline
 # 134 "kind.ag"
-    readMasterConfig1("/etc/kind/master.conf", conf);
+    readMasterConfig1(fn, conf);
 # 135 "kind.ag"
-  else if (fileExists("/ffp/etc/kind/master.conf"))
+  else if (fileExists("/etc/kind/master.conf"))
 # 136 "kind.ag"
-    readMasterConfig1("/ffp/etc/kind/master.conf", conf);
+    readMasterConfig1("/etc/kind/master.conf", conf);
 # 137 "kind.ag"
-  else
+  else if (fileExists("/ffp/etc/kind/master.conf"))
 # 138 "kind.ag"
-    throw Exception("MasterConfig", "no file");
+    readMasterConfig1("/ffp/etc/kind/master.conf", conf);
 # 139 "kind.ag"
-}
+  else
 # 140 "kind.ag"
-
+    throw Exception("MasterConfig", "no file");
 # 141 "kind.ag"
-string findVault(const string& v)
+}
 # 142 "kind.ag"
-{
+
 # 143 "kind.ag"
-  bool found = false;
+string findVault(const string& v)
 # 144 "kind.ag"
-  FileName fn;
+{
 # 145 "kind.ag"
-  fn.setName(v);
+  bool found = false;
 # 146 "kind.ag"
-  for (unsigned int i = 0; !found && i < banks.size(); ++i)
+  FileName fn;
 # 147 "kind.ag"
-    {
+  fn.setName(v);
 # 148 "kind.ag"
-      fn.setPath(banks[i]);
+  for (unsigned int i = 0; !found && i < banks.size(); ++i)
 # 149 "kind.ag"
-      if (dirExists(fn.getFileName()))
-# 150 "kind.ag"
-        found = true;
-# 151 "kind.ag"
-    }
-# 152 "kind.ag"
-  if (!found)
-# 153 "kind.ag"
-    throw Exception("find vault", v + " not found");
-# 154 "kind.ag"
-  verbosePrint("using vault " + fn.getFileName());
-# 155 "kind.ag"
-  return fn.getFileName();
-# 156 "kind.ag"
-}
-# 157 "kind.ag"
-
-# 158 "kind.ag"
-void readVaultConfig(const string& vault, KindConfig& conf)
-# 159 "kind.ag"
-{
-# 160 "kind.ag"
-  string vaultpath = findVault(vault);
-# 161 "kind.ag"
-  const string& vaultConfigName = vaultpath + '/' + conf.getString("vaultConfigName");
-# 162 "kind.ag"
-  verbosePrint("reading vault config:");
-# 163 "kind.ag"
-  verbosePrint("  " + vaultConfigName);
-# 164 "kind.ag"
-  conf.addFile(vaultConfigName);
-# 165 "kind.ag"
-}
-# 166 "kind.ag"
-
-# 167 "kind.ag"
-string getImageName(const KindConfig& conf,
-# 168 "kind.ag"
-                    const string& vaultPath,
-# 169 "kind.ag"
-                    const DateTime& imageTime)
-# 170 "kind.ag"
-{
-# 171 "kind.ag"
-  bool nonPortable = false;
-# 172 "kind.ag"
-  string imageName = conf.getString("imageName");
-# 173 "kind.ag"
-  for (unsigned int i = 0; !nonPortable && i < imageName.size(); ++i)
-# 174 "kind.ag"
     {
-# 175 "kind.ag"
-      char c = imageName[i];
-# 176 "kind.ag"
-      if (!isalnum(c) && c != '.' && c != '_')
-# 177 "kind.ag"
-        nonPortable = true;
-# 178 "kind.ag"
+# 150 "kind.ag"
+      fn.setPath(banks[i]);
+# 151 "kind.ag"
+      if (dirExists(fn.getFileName()))
+# 152 "kind.ag"
+        found = true;
+# 153 "kind.ag"
     }
+# 154 "kind.ag"
+  if (!found)
+# 155 "kind.ag"
+    throw Exception("find vault", v + " not found");
+# 156 "kind.ag"
+  verbosePrint("using vault " + fn.getFileName());
+# 157 "kind.ag"
+  return fn.getFileName();
+# 158 "kind.ag"
+}
+# 159 "kind.ag"
+
+# 160 "kind.ag"
+void readVaultConfig(const string& vault, KindConfig& conf)
+# 161 "kind.ag"
+{
+# 162 "kind.ag"
+  string vaultpath = findVault(vault);
+# 163 "kind.ag"
+  const string& vaultConfigName = vaultpath + '/' + conf.getString("vaultConfigName");
+# 164 "kind.ag"
+  verbosePrint("reading vault config:");
+# 165 "kind.ag"
+  verbosePrint("  " + vaultConfigName);
+# 166 "kind.ag"
+  conf.addFile(vaultConfigName);
+# 167 "kind.ag"
+}
+# 168 "kind.ag"
+
+# 169 "kind.ag"
+string getImageName(const KindConfig& conf,
+# 170 "kind.ag"
+                    const string& vaultPath,
+# 171 "kind.ag"
+                    const DateTime& imageTime)
+# 172 "kind.ag"
+{
+# 173 "kind.ag"
+  bool nonPortable = false;
+# 174 "kind.ag"
+  string imageName = conf.getString("imageName");
+# 175 "kind.ag"
+  for (unsigned int i = 0; !nonPortable && i < imageName.size(); ++i)
+# 176 "kind.ag"
+    {
+# 177 "kind.ag"
+      char c = imageName[i];
+# 178 "kind.ag"
+      if (!isalnum(c) && c != '.' && c != '_')
 # 179 "kind.ag"
-  if (nonPortable)
+        nonPortable = true;
 # 180 "kind.ag"
-    throw Exception("getImageName", "Invalid character in image name " + imageName);
+    }
 # 181 "kind.ag"
-
+  if (nonPortable)
 # 182 "kind.ag"
-  if (!imageName.empty())
+    throw Exception("getImageName", "Invalid character in image name " + imageName);
 # 183 "kind.ag"
-    imageName += '-';
-# 184 "kind.ag"
 
+# 184 "kind.ag"
+  if (!imageName.empty())
 # 185 "kind.ag"
-  string imageFullName =  vaultPath + "/" + imageName ;
+    imageName += '-';
 # 186 "kind.ag"
 
 # 187 "kind.ag"
-  if (conf.getBool("longImageName"))
+  string imageFullName =  vaultPath + "/" + imageName ;
 # 188 "kind.ag"
-    imageFullName += imageTime.getString('m');
+
 # 189 "kind.ag"
-  else
+  if (conf.getBool("longImageName"))
 # 190 "kind.ag"
-    imageFullName += imageTime.getString('s');
+    imageFullName += imageTime.getString('m');
 # 191 "kind.ag"
-
+  else
 # 192 "kind.ag"
-  return imageFullName;
+    imageFullName += imageTime.getString('s');
 # 193 "kind.ag"
-}
+
 # 194 "kind.ag"
-
+  return imageFullName;
 # 195 "kind.ag"
-Images findImages(const string& vaultpath, const KindConfig& conf, bool all)
+}
 # 196 "kind.ag"
-{
+
 # 197 "kind.ag"
-  Strings dirs;
+Images findImages(const string& vaultpath, const KindConfig& conf, bool all)
 # 198 "kind.ag"
-  debugPrint("searching images in " + vaultpath);
+{
 # 199 "kind.ag"
-  dirList(vaultpath, dirs);
+  Strings dirs;
 # 200 "kind.ag"
-
+  debugPrint("searching images in " + vaultpath);
 # 201 "kind.ag"
-  Images imageList;
+  dirList(vaultpath, dirs);
 # 202 "kind.ag"
-  for (string dir : dirs)
+
 # 203 "kind.ag"
-    {
+  Images imageList;
 # 204 "kind.ag"
-      FileName fn(dir);
+  for (string dir : dirs)
 # 205 "kind.ag"
-      string imgname = conf.getString("imageName");
-# 206 "kind.ag"
-      if (startsWith(fn.getName(), imgname))
-# 207 "kind.ag"
-        {
-# 208 "kind.ag"
-          debugPrint("Checking " + dir);
-# 209 "kind.ag"
-          Image image(dir);
-# 210 "kind.ag"
-
-# 211 "kind.ag"
-          if (all || image.valid)
-# 212 "kind.ag"
-            imageList.push_back(image);
-# 213 "kind.ag"
-        }
-# 214 "kind.ag"
-    }
-# 215 "kind.ag"
-  if (imageList.size() > 1)
-# 216 "kind.ag"
-    sort(imageList.begin(), imageList.end());
-# 217 "kind.ag"
-  return imageList;
-# 218 "kind.ag"
-}
-# 219 "kind.ag"
-
-# 220 "kind.ag"
-void listImageInfo(const string& vault,
-# 221 "kind.ag"
-                   KindConfig conf /*Copy!*/ ,
-# 222 "kind.ag"
-                   const DateTime& imageTime,
-# 223 "kind.ag"
-                   const string& backupSet)
-# 224 "kind.ag"
-{
-# 225 "kind.ag"
-  readVaultConfig(vault, conf);
-# 226 "kind.ag"
-  string vaultPath = findVault(vault);
-# 227 "kind.ag"
-  Images imageList = findImages(vaultPath, conf, true);
-# 228 "kind.ag"
-  cout << "---" << endl;
-# 229 "kind.ag"
-  for (auto img : imageList)
-# 230 "kind.ag"
     {
-# 231 "kind.ag"
-      if (img.series == backupSet || backupSet.empty())
-# 232 "kind.ag"
+# 206 "kind.ag"
+      FileName fn(dir);
+# 207 "kind.ag"
+      string imgname = conf.getString("imageName");
+# 208 "kind.ag"
+      if (startsWith(fn.getName(), imgname))
+# 209 "kind.ag"
         {
-# 233 "kind.ag"
-          img.printInfo();
-# 234 "kind.ag"
-          cout << "---" << endl;
-# 235 "kind.ag"
+# 210 "kind.ag"
+          debugPrint("Checking " + dir);
+# 211 "kind.ag"
+          Image image(dir);
+# 212 "kind.ag"
+
+# 213 "kind.ag"
+          if (all || image.valid)
+# 214 "kind.ag"
+            imageList.push_back(image);
+# 215 "kind.ag"
         }
-# 236 "kind.ag"
+# 216 "kind.ag"
     }
-# 237 "kind.ag"
+# 217 "kind.ag"
+  if (imageList.size() > 1)
+# 218 "kind.ag"
+    sort(imageList.begin(), imageList.end());
+# 219 "kind.ag"
+  return imageList;
+# 220 "kind.ag"
 }
-# 238 "kind.ag"
+# 221 "kind.ag"
 
-# 239 "kind.ag"
-void doBackup(const string& vault,
-# 240 "kind.ag"
-              const string& imageFullName,
-# 241 "kind.ag"
-              const string& referenceImage,
-# 242 "kind.ag"
-              const KindConfig& conf)
-# 243 "kind.ag"
+# 222 "kind.ag"
+void listImageInfo(const string& vault,
+# 223 "kind.ag"
+                   KindConfig conf /*Copy!*/ ,
+# 224 "kind.ag"
+                   const DateTime& imageTime,
+# 225 "kind.ag"
+                   const string& backupSet)
+# 226 "kind.ag"
 {
-# 244 "kind.ag"
-  // create image path
-# 245 "kind.ag"
+# 227 "kind.ag"
+  readVaultConfig(vault, conf);
+# 228 "kind.ag"
+  string vaultPath = findVault(vault);
+# 229 "kind.ag"
+  Images imageList = findImages(vaultPath, conf, true);
+# 230 "kind.ag"
+  cout << "---" << endl;
+# 231 "kind.ag"
+  for (auto img : imageList)
+# 232 "kind.ag"
+    {
+# 233 "kind.ag"
+      if (img.series == backupSet || backupSet.empty())
+# 234 "kind.ag"
+        {
+# 235 "kind.ag"
+          img.printInfo();
+# 236 "kind.ag"
+          cout << "---" << endl;
+# 237 "kind.ag"
+        }
+# 238 "kind.ag"
+    }
+# 239 "kind.ag"
+}
+# 240 "kind.ag"
 
+# 241 "kind.ag"
+void doBackup(const string& vault,
+# 242 "kind.ag"
+              const string& imageFullName,
+# 243 "kind.ag"
+              const string& referenceImage,
+# 244 "kind.ag"
+              const KindConfig& conf)
+# 245 "kind.ag"
+{
 # 246 "kind.ag"
-  bool shellMode = true;
+  // create image path
 # 247 "kind.ag"
 
 # 248 "kind.ag"
-  // create source descriptor
+  bool shellMode = true;
 # 249 "kind.ag"
-  string host;
+
 # 250 "kind.ag"
-  if (conf.hasKey("host"))
+  // create source descriptor
 # 251 "kind.ag"
-    host = conf.getString("host");
+  string host;
 # 252 "kind.ag"
-
+  if (conf.hasKey("host"))
 # 253 "kind.ag"
-  string server;
+    host = conf.getString("host");
 # 254 "kind.ag"
-  if (conf.hasKey("server"))
+
 # 255 "kind.ag"
-    {
+  string server;
 # 256 "kind.ag"
-      server = conf.getString("server");
+  if (conf.hasKey("server"))
 # 257 "kind.ag"
-      shellMode = false;
-# 258 "kind.ag"
-    }
-# 259 "kind.ag"
-
-# 260 "kind.ag"
-  if (!host.empty() && !server.empty())
-# 261 "kind.ag"
-    throw Exception("backupVault", "Cannot have host and server");
-# 262 "kind.ag"
-
-# 263 "kind.ag"
-  if (host.empty() && server.empty())
-# 264 "kind.ag"
-    throw Exception("backupVault", "No host or server specified");
-# 265 "kind.ag"
-
-# 266 "kind.ag"
-  // ping host / server
-# 267 "kind.ag"
-  // ping -c 1 -W 5 -q $HOST
-# 268 "kind.ag"
-  string pingCommand = conf.getString("ping");
-# 269 "kind.ag"
-  debugPrint("PingCommand: " + pingCommand);
-# 270 "kind.ag"
-  if (!pingCommand.empty())
-# 271 "kind.ag"
     {
+# 258 "kind.ag"
+      server = conf.getString("server");
+# 259 "kind.ag"
+      shellMode = false;
+# 260 "kind.ag"
+    }
+# 261 "kind.ag"
+
+# 262 "kind.ag"
+  if (!host.empty() && !server.empty())
+# 263 "kind.ag"
+    throw Exception("backupVault", "Cannot have host and server");
+# 264 "kind.ag"
+
+# 265 "kind.ag"
+  if (host.empty() && server.empty())
+# 266 "kind.ag"
+    throw Exception("backupVault", "No host or server specified");
+# 267 "kind.ag"
+
+# 268 "kind.ag"
+  // ping host / server
+# 269 "kind.ag"
+  // ping -c 1 -W 5 -q $HOST
+# 270 "kind.ag"
+  string pingCommand = conf.getString("ping");
+# 271 "kind.ag"
+  debugPrint("PingCommand: " + pingCommand);
 # 272 "kind.ag"
-      if (!host.empty())
+  if (!pingCommand.empty())
 # 273 "kind.ag"
-        replacePlaceHolder(pingCommand, "%host", host);
+    {
 # 274 "kind.ag"
-      else
+      if (!host.empty())
 # 275 "kind.ag"
-        replacePlaceHolder(pingCommand, "%host", server);
+        replacePlaceHolder(pingCommand, "%host", host);
 # 276 "kind.ag"
-      int rc = 0;
+      else
 # 277 "kind.ag"
-      Strings pingResult = localExec(pingCommand, rc, debug);
+        replacePlaceHolder(pingCommand, "%host", server);
 # 278 "kind.ag"
-      if (rc != 0)
+      int rc = 0;
 # 279 "kind.ag"
-        {
+      Strings pingResult = localExec(pingCommand, rc, debug);
 # 280 "kind.ag"
-          throw Exception("Host not available", pingCommand);
+      if (rc != 0)
 # 281 "kind.ag"
-        }
+        throw Exception("Host not available", pingCommand);
 # 282 "kind.ag"
     }
 # 283 "kind.ag"
@@ -738,17 +738,17 @@ void doBackup(const string& vault,
 # 365 "kind.ag"
       if (rc == 0 ||
 # 366 "kind.ag"
-      rc == 24 || // "no error" or "vanished source files" (ignored)
+          rc == 24 || // "no error" or "vanished source files" (ignored)
 # 367 "kind.ag"
-      rc == 6144) // workaround for wrong exit code ??!!
+          rc == 6144) // workaround for wrong exit code ??!!
 # 368 "kind.ag"
         {
 # 369 "kind.ag"
           unlink(errorfile.c_str());
 # 370 "kind.ag"
-          long int st = 0;
+          double st = 0;
 # 371 "kind.ag"
-          long int sc = 0;
+          double sc = 0;
 # 372 "kind.ag"
           for (auto bl : backupResult)
 # 373 "kind.ag"
@@ -1180,7 +1180,7 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
 # 586 "kind.ag"
       if (imageTime != now &&          // ignore just created image
 # 587 "kind.ag"
-      image.name != lastValidImage // ignore last valid image
+          image.name != lastValidImage // ignore last valid image
 # 588 "kind.ag"
          )
 # 589 "kind.ag"
@@ -1268,40 +1268,64 @@ string ag_programName;
 void usage()
 {
   cout << ag_programName << " - archiving backup" << endl;
-  cout << "Aufruf:" << endl;
+  cout << "Usage:" << endl;
   cout << ag_programName << " [<options>] vault_or_group " << endl;
   cout << "  vault_or_group - Vault to backup" << endl;
-  cout << "Optionen:" << endl;
-  cout << "  -c --masterconfig  Master config file (default: \"\")" << endl;
-  cout << "                     if not given or empty kind looks for" << endl;
-  cout << "                     /etc/kind/master.conf" << endl;
-  cout << "                     /ffp/etc/kind/master.conf" << endl;
-  cout << "  -f --full          Force full image == initial backup (default: false)" << endl;
-  cout << "  -B --backup        Backup (default: false)" << endl;
-  cout << "  -E --expire        Expire (default: false)" << endl;
-  cout << "  -C --listconfig    Show configuration (default: false)" << endl;
-  cout << "  -I --listimages    List data of images (default: false)" << endl;
-  cout << "                     if none of backup, expire, listconfig and listimages is specified," << endl;
-  cout << "                     backup and expire is assumed." << endl;
-  cout << "                     listconfig and listimages cannot be combined with other actions" << endl;
-  cout << "  -D --dryrun        Dry run (no real backup) (default: false)" << endl;
-  cout << "  -F --forcebackup   Create image for specified backup set (default: \"\")" << endl;
-  cout << "  -v --verbose       Verbose (default: false)" << endl;
-  cout << "  -d --debug         Debug output of many data (default: false)" << endl;
-  cout << "  -q --quiet         Be quiet - no messages (default: false)" << endl;
-  cout << "  -h --help          This help" << endl;
+  cout << "Options:" << endl;
+  cout << "  -c <s>    --masterconfig=<s>" << endl;
+  cout << "     Master config file (default: \"\")" << endl;
+
+  cout << "     if not given or empty kind looks for" << endl;
+  cout << "     /etc/kind/master.conf" << endl;
+  cout << "     /ffp/etc/kind/master.conf" << endl;
+  cout << "  -f        --full=   " << endl;
+  cout << "     Force full image == initial backup (default: false)" << endl;
+
+  cout << "  -B        --backup=   " << endl;
+  cout << "     Backup (default: false)" << endl;
+
+  cout << "  -E        --expire=   " << endl;
+  cout << "     Expire (default: false)" << endl;
+
+  cout << "  -C        --listconfig=   " << endl;
+  cout << "     Show configuration (default: false)" << endl;
+
+  cout << "  -I        --listimages=   " << endl;
+  cout << "     List data of images (default: false)" << endl;
+
+  cout << "     if none of backup, expire, listconfig and listimages is specified," << endl;
+  cout << "     backup and expire is assumed." << endl;
+  cout << "     listconfig and listimages cannot be combined with other actions" << endl;
+  cout << "  -D        --dryrun=   " << endl;
+  cout << "     Dry run (no real backup) (default: false)" << endl;
+
+  cout << "  -F <s>    --forcebackup=<s>" << endl;
+  cout << "     Create image for specified backup set (default: \"\")" << endl;
+
+  cout << "  -v        --verbose=   " << endl;
+  cout << "     Verbose (default: false)" << endl;
+
+  cout << "  -d        --debug=   " << endl;
+  cout << "     Debug output of many data (default: false)" << endl;
+
+  cout << "  -q        --quiet=   " << endl;
+  cout << "     Be quiet - no messages (default: false)" << endl;
+
+  cout << "  -h        --help=   " << endl;
+  cout << "     This help" << endl;
+
   exit(1);
 }
 
-void error(const string& msg)
+void error(const string &msg)
 {
   cout << endl << ag_programName << " - error: " << msg << endl << endl;
   usage();
 }
 
-int ptoi(const char* para)
+int ptoi(const char *para)
 {
-  char* end;
+  char *end;
   int res = strtol(para, &end, 10);
   if (end == para)
     error(string("no int: ") + para);
@@ -1310,9 +1334,9 @@ int ptoi(const char* para)
   return res;
 }
 
-double ptod(const char* para)
+double ptod(const char *para)
 {
-  char* end;
+  char *end;
   double res = strtod(para, &end);
   if (end == para)
     error(string("no double: ") + para);
@@ -1321,17 +1345,17 @@ double ptod(const char* para)
   return res;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
-  string masterConfig = "";
-  bool fullImage = false;
-  bool doBackup = false;
-  bool doExpire = false;
-  bool listConfig = false;
-  bool listImages = false;
-  string forcedBackupSet = "";
+string masterConfig = "";
+bool fullImage = false;
+bool doBackup = false;
+bool doExpire = false;
+bool listConfig = false;
+bool listImages = false;
+string forcedBackupSet = "";
 
-  string vault = "";
+string vault = "";
   static struct option ag_long_options[] =
   {
     {"masterconfig", required_argument, 0, 'c' },
@@ -1356,68 +1380,68 @@ int main(int argc, char** argv)
       switch (rc)
         {
         case '?':
-          error("Unbekannte Option");
+          error("Unknown option");
           break;
         case ':':
-          error("erwarte Option-Parameter");
+          error("Expecting option parameter");
           break;
         case 'c':
-          masterConfig = optarg;
-          break;
+              masterConfig = optarg;
+              break;
 
         case 'f':
-          fullImage = true;
-          break;
+              fullImage = true;
+              break;
 
         case 'B':
-          doBackup = true;
-          break;
+              doBackup = true;
+              break;
 
         case 'E':
-          doExpire = true;
-          break;
+              doExpire = true;
+              break;
 
         case 'C':
-          listConfig = true;
-          break;
+              listConfig = true;
+              break;
 
         case 'I':
-          listImages = true;
-          break;
+              listImages = true;
+              break;
 
         case 'D':
-          dryRun = true;
-          break;
+              dryRun = true;
+              break;
 
         case 'F':
-          forcedBackupSet = optarg;
-          break;
+              forcedBackupSet = optarg;
+              break;
 
         case 'v':
-          verbose = true;
-          break;
+              verbose = true;
+              break;
 
         case 'd':
-          debug = true;
-          break;
+              debug = true;
+              break;
 
         case 'q':
-          quiet = true;
-          break;
+              quiet = true;
+              break;
 
         case 'h':
-          usage();
-          break;
+              usage();
+              break;
 
         default:
-          error("Unbekannter Fehler in Optionen");
+          error("error in options");
         }
     }
   if (optind < argc)
     vault = argv[optind++];
-  else error("Erwarte Parameter vault_or_group");
+  else error("Parameter vault_or_group needed");
 
-  /*AppGen:MainEnd*/
+/*AppGen:MainEnd*/
 # 632 "kind.ag"
 
 # 633 "kind.ag"

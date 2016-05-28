@@ -66,7 +66,9 @@ Strings banks;
 
 string findVault(const string& v);
 
-typedef pair<long int, long int> Sizes;
+// we use double for sizes (in byte) to avoid overflow
+// on machines with small int types
+typedef pair<double, double> Sizes;
 map<string, Sizes> sizes;
 
 void readSizes(const string& logSizeFile)
@@ -79,8 +81,8 @@ void readSizes(const string& logSizeFile)
         {
           unsigned int i = 0;
           string vault = getWord(s, i);
-          long int s1 = getLongInt(s, i);
-          long int s2 = getLongInt(s, i);
+          double s1 = getDouble(s, i);
+          double s2 = getDouble(s, i);
           try
             {
               findVault(vault);
@@ -365,8 +367,8 @@ void doBackup(const string& vault,
           rc == 6144) // workaround for wrong exit code ??!!
         {
           unlink(errorfile.c_str());
-          long int st = 0;
-          long int sc = 0;
+          double st = 0;
+          double sc = 0;
           for (auto bl : backupResult)
             {
               if (startsWith(bl, "Total file size"))
