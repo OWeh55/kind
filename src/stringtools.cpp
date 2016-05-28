@@ -126,8 +126,8 @@ long int getLongInt(const string& s, unsigned int& i)
 
 double getDouble(const string& s, unsigned int& i)
 {
-  if (!isdigit(s[i])||s[i]=='-')
-    throw Exception("getDouble", "digit expected");
+  if (!isdigit(s[i]) && s[i]!='-')
+    throw Exception("getDouble", "digit expected in " );
   string is;
   while (i < s.size() && (isdigit(s[i]) || s[i]=='-' || s[i]=='.' || s[i]=='e' || s[i]=='E'))
     {
