@@ -11,7 +11,7 @@ Each image is a complete copy, but unchanged files are
 shared between different images as hardlink. 
 
 Basic tool for this is **rsync**, which must be installed on the 
-server and at the clients. rsync may be used via ssh or as server.
+server and the clients. rsync may be used via ssh or as server.
 
 For an automated backup via ssh the server must have ssh access 
 to the clients without password (using public key authentication).
