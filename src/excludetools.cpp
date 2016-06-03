@@ -50,7 +50,7 @@ Strings getExclusions(const KindConfig& conf, bool shellMode)
       string userExcludeFile = conf.getString("userExcludeFile");
       if (!userExcludeFile.empty())
         {
-          userExcludeFile = path + userExcludeFile;
+          userExcludeFile = path + "/" + userExcludeFile;
           string getExcludeFileCommand = " \" if [ -f '" + userExcludeFile + "' ]; then ";
           getExcludeFileCommand += " cat '" + userExcludeFile + "' ; fi \"";
           // cout << getExcludeFileCommand << endl;
