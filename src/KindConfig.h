@@ -16,7 +16,7 @@ public:
 
   void addFile(const std::string& fn);
   //  void addFile(std::istream& is);
-  void add(const std::string& key, const std::string& value)
+  void addString(const std::string& key, const std::string& value)
   {
     settings[key].push_back(value);
   }
