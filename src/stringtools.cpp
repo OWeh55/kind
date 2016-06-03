@@ -124,6 +124,21 @@ long int getLongInt(const string& s, unsigned int& i)
   return res;
 }
 
+double getDouble(const string& s, unsigned int& i)
+{
+  if (!isdigit(s[i]) && s[i] != '-')
+    throw Exception("getDouble", "digit expected in ");
+  string is;
+  while (i < s.size() && (isdigit(s[i]) || s[i] == '-' || s[i] == '.' || s[i] == 'e' || s[i] == 'E'))
+    {
+      is += s[i];
+      ++i;
+    }
+  double res = stod(is);
+  skipWS(s, i);
+  return res;
+}
+
 string getWord(const string& s, unsigned int& i)
 {
   if (!isalpha(s[i]) && s[i] != '-' && s[i] != '_')
@@ -231,7 +246,7 @@ string timeString(time_t t)
   return res;
 }
 
-long int getNumber(const string& l)
+double getNumber(const string& l)
 {
   // read *all* digits from string l ignoring all other characters
   // "read 3,000,421 Bytes" => 3000421
@@ -243,7 +258,7 @@ long int getNumber(const string& l)
   long int res = 0;
   try
     {
-      res = stol(d);
+      res = stof(d);
     }
   catch (...)
     {
@@ -266,4 +281,3 @@ void replacePlaceHolder(string& s,
       pos = s.find(placeholder);
     }
 }
-

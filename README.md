@@ -11,7 +11,7 @@ Each image is a complete copy, but unchanged files are
 shared between different images as hardlink. 
 
 Basic tool for this is **rsync**, which must be installed on the 
-server and at the clients. rsync may be used via ssh or as server.
+server and the clients. rsync may be used via ssh or as server.
 
 For an automated backup via ssh the server must have ssh access 
 to the clients without password (using public key authentication).
@@ -23,15 +23,15 @@ server to read the modules to backup.
 
 ##Installation
 
-Make sure, that rsync, ssh and find is installed correctly on server and clients.
+Make sure, that rsync, ssh and find are installed correctly on server and clients.
 
-Make sure, that the backup user (user running kind) can login from the 
-server to the client host[s] without password (using public key authentication)
+Make sure, that the backup user can login from server to the client host[s] 
+without password (using public key authentication)
 
 clone the repository and build kind using
 ```
 - make dep
-- make 
+- make
 ```
 in the directory src. Copy kind to a directory on server (e.g. /usr/sbin)
 
@@ -57,8 +57,10 @@ least the bank:
 - Create a vault config files /[bank]/[vault]/kind/vault.conf, containing
 ```
     host=[client host]
-    user=[backup user]
+
+    user=[backup user on client]
     path=[path to backup on client]
+
 ```
 - Run kind (on server) first time:
 ```
