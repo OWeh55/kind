@@ -6,13 +6,13 @@
 
 using namespace std;
 
-Strings getExclusions(const KindConfig& conf, bool shellMode)
+Strings getExclusions(const KindConfig& conf)
 {
   Strings exclusions;
   if (conf.hasKey("exclude"))
     exclusions += conf.getStrings("exclude");
 
-  if (shellMode)
+  if (conf.getBool("shellMode"))
     {
       string path = conf.getString("path");
       string remoteShell = conf.getString("remoteShell");
@@ -23,16 +23,16 @@ Strings getExclusions(const KindConfig& conf, bool shellMode)
 
       rshCommand += " " + userAtHost;
 
-      string userExcludeCommand = conf.getString("userExcludeCommand");
+      Strings userExcludeCommands = conf.getStrings("userExcludeCommand");
 
-      if (!userExcludeCommand.empty())
+      for (auto cmd : userExcludeCommands)
         {
-          replacePlaceHolder(userExcludeCommand, "%path", conf.getString("path"));
+          replacePlaceHolder(cmd, "%path", conf.getString("path"));
 
-          verbosePrint("searching for exclusions (" + userExcludeCommand + ")");
+          verbosePrint("looking for exclusions (" + cmd + ")");
 
           int rc;
-          Strings excludedFiles = remoteExec(rshCommand, userExcludeCommand, rc, debug);
+          Strings excludedFiles = remoteExec(rshCommand, cmd, rc, debug);
           if (rc > 0)
             {
               // return Strings should contain error messages
@@ -46,7 +46,7 @@ Strings getExclusions(const KindConfig& conf, bool shellMode)
               debugPrint("Excluding: " + exclusions.back());
             }
         }
-
+      /*
       string userExcludeFile = conf.getString("userExcludeFile");
       if (!userExcludeFile.empty())
         {
@@ -59,6 +59,7 @@ Strings getExclusions(const KindConfig& conf, bool shellMode)
           if (rc == 0)
             exclusions += excludes2;
         } // if (shellMode)
+      */
     }
   return exclusions;
 }
