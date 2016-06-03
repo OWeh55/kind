@@ -182,10 +182,10 @@ void readVaultConfig(const string& vault, KindConfig& conf)
     }
 
   if (!host.empty() && !server.empty())
-    throw Exception("backupVault", "Cannot have host and server");
+    throw Exception("Vault " + vault, "Cannot have host and server");
 
   if (host.empty() && server.empty())
-    throw Exception("backupVault", "No host or server specified");
+    throw Exception("Vault " + vault, "No host or server specified");
 
   conf.setBool("shellMode", shellMode);
 
@@ -193,6 +193,12 @@ void readVaultConfig(const string& vault, KindConfig& conf)
     conf.setBool("useBackupSet", true);
   else
     conf.setBool("useBackupSet", false);
+
+  if (conf.hasKey("userExcludeFile"))
+    {
+      string userExcludeCommand = "cat " + conf.getString("userExcludeFile");
+      conf.addString("userExcludeCommand", userExcludeCommand);
+    }
 }
 
 string getImageName(const KindConfig& conf,
@@ -272,27 +278,16 @@ void doBackup(const string& vault,
               const string& referenceImage,
               const KindConfig& conf)
 {
-  // create image path
-
-  bool shellMode = true;
+  bool shellMode = conf.getBool("shellMode");
 
   // create source descriptor
   string host;
-  if (conf.hasKey("host"))
-    host = conf.getString("host");
-
   string server;
-  if (conf.hasKey("server"))
-    {
-      server = conf.getString("server");
-      shellMode = false;
-    }
 
-  if (!host.empty() && !server.empty())
-    throw Exception("backupVault", "Cannot have host and server");
-
-  if (host.empty() && server.empty())
-    throw Exception("backupVault", "No host or server specified");
+  if (shellMode)
+    host = conf.getString("host");
+  else
+    server = conf.getString("server");
 
   // ping host / server
   // ping -c 1 -W 5 -q $HOST
@@ -324,7 +319,7 @@ void doBackup(const string& vault,
     rsyncCmd += opt + " ";
 
   // excludes
-  Strings excluded = getExclusions(conf, shellMode);
+  Strings excluded = getExclusions(conf);
 
   // create image path
   if (!dryRun)
@@ -405,9 +400,7 @@ void doBackup(const string& vault,
               else if (startsWith(bl, "Total transferred file size"))
                 sc = getNumber(bl);
             }
-          // sizes[vault] = pair<long int, long int>(st, sc);
           sizes[vault] = Sizes(st, sc);
-          //  cout << vault << " " << st << " || " << sc << endl;
         }
       else
         throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc) + ")");
@@ -676,19 +669,19 @@ int main(int argc, char* argv[])
       KindConfig conf;
 
       // default-values
-      conf.add("imageName", "image");
-      conf.add("vaultConfigName", "kind/vault.conf");
-      conf.add("expireFailedImage", "3 days");
-      conf.add("expireRule", "* * * * 1 month");
-      conf.add("ping", "ping -c 1 -W 5 %host");
-      conf.add("rsyncOption", ""); // no additional rsync option
-      conf.add("remoteShell", "");
-      conf.add("lockfile", "/var/lock/kind");
-      conf.add("userExcludeFile", "nobackup.list");
-      conf.add("userExcludeCommand",
-               "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
-      conf.add("logSize", "");
-      conf.add("lastLink", "symLink");
+      conf.addString("imageName", "image");
+      conf.addString("vaultConfigName", "kind/vault.conf");
+      conf.addString("expireFailedImage", "3 days");
+      conf.addString("expireRule", "* * * * 1 month");
+      conf.addString("ping", "ping -c 1 -W 5 %host");
+      conf.addString("rsyncOption", ""); // no additional rsync option
+      conf.addString("remoteShell", "");
+      conf.addString("lockfile", "/var/lock/kind");
+      conf.addString("userExcludeFile", "nobackup.list");
+      conf.addString("userExcludeCommand",
+                     "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
+      conf.addString("logSize", "");
+      conf.addString("lastLink", "symLink");
 
       if (listConfig)
         {
