@@ -33,12 +33,13 @@ Strings getExclusions(const KindConfig& conf)
 
           int rc;
           Strings excludedFiles = remoteExec(rshCommand, cmd, rc, debug);
-          if (rc > 0)
-            {
-              // return Strings should contain error messages
-              throw Exception("Find excludes", "Search for excludes failed");
-            }
-
+          /*
+                if (rc > 0)
+                  {
+                    // return Strings should contain error messages
+                    throw Exception("Find excludes", "Search for excludes failed");
+                  }
+          */
           for (unsigned int i = 0; i < excludedFiles.size(); ++i)
             {
               FileName fn(excludedFiles[i]);
