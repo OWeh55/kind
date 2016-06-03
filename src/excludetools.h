@@ -4,6 +4,6 @@
 #include "KindConfig.h"
 #include "Strings.h"
 
-Strings getExclusions(const KindConfig& conf, bool shellMode);
+Strings getExclusions(const KindConfig& conf);
 
 #endif
