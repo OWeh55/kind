@@ -21,6 +21,18 @@ public:
     settings[key].push_back(value);
   }
 
+  void setBool(const std::string& key, bool value)
+  {
+    settings[key].resize(1);
+    settings[key][0] = value ? "true" : "false";
+  }
+
+  void setString(const std::string& key, const std::string& value)
+  {
+    settings[key].resize(1);
+    settings[key][0] = value;
+  }
+
   bool hasKey(std::string key) const;
 
   std::string getString(std::string key) const;

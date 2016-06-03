@@ -159,11 +159,40 @@ string findVault(const string& v)
 
 void readVaultConfig(const string& vault, KindConfig& conf)
 {
-  string vaultpath = findVault(vault);
-  const string& vaultConfigName = vaultpath + '/' + conf.getString("vaultConfigName");
+  string vaultPath = findVault(vault);
+  const string& vaultConfigName = vaultPath + '/' + conf.getString("vaultConfigName");
   verbosePrint("reading vault config:");
   verbosePrint("  " + vaultConfigName);
   conf.addFile(vaultConfigName);
+
+  // postprocessing
+
+  conf.setString("vaultPath", vaultPath);
+  bool shellMode = true;
+
+  string host;
+  if (conf.hasKey("host"))
+    host = conf.getString("host");
+
+  string server;
+  if (conf.hasKey("server"))
+    {
+      server = conf.getString("server");
+      shellMode = false;
+    }
+
+  if (!host.empty() && !server.empty())
+    throw Exception("backupVault", "Cannot have host and server");
+
+  if (host.empty() && server.empty())
+    throw Exception("backupVault", "No host or server specified");
+
+  conf.setBool("shellMode", shellMode);
+
+  if (conf.hasKey("setRule"))
+    conf.setBool("useBackupSet", true);
+  else
+    conf.setBool("useBackupSet", false);
 }
 
 string getImageName(const KindConfig& conf,
@@ -289,7 +318,7 @@ void doBackup(const string& vault,
 
   string rsyncCmd = "rsync -vrltH --delete --stats -D --numeric-ids ";
   if (!conf.getBool("ignorePermission"))
-    rsyncCmd += "-pgo";
+    rsyncCmd += "-pgo ";
   vector<string> rso = conf.getStrings("rsyncOption");
   for (const string& opt : rso)
     rsyncCmd += opt + " ";
@@ -362,8 +391,8 @@ void doBackup(const string& vault,
       verbosePrint("syncing (" + rsyncCmd + ")");
       int rc;
       backupResult = localExec(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
-      if (rc == 0 ||
-          rc == 24 || // "no error" or "vanished source files" (ignored)
+      if (rc == 0 ||  // "no error"
+          rc == 24 || // "vanished source files" (ignored)
           rc == 6144) // workaround for wrong exit code ??!!
         {
           unlink(errorfile.c_str());

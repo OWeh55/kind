@@ -37,6 +37,9 @@ kind: $(OBJECTS)
 stot:	stot.o stringtools.o Lexer.o
 	$(CXX) $(LOPT) $(LIBRARY) -o stot stot.o stringtools.o Lexer.o $(LIBS)	
 
+sshtest: sshtest.o filetools.o
+	$(CXX) $(LOPT) $(LIBRARY) -o sshtest sshtest.o filetools.o $(LIBS)	
+
 static: kind
 	$(CXX) $(LOPT) $(LIBRARY) -static -o kind_static $(OBJECTS) $(LIBS)
 	strip kind_static
