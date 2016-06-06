@@ -11,7 +11,9 @@ public:
   static const char extdel = '.';
 
   FileName(): absolute(false) {};
+
   FileName(const std::string& filename);
+
   FileName(const std::string& path,
            const std::string& name,
            const std::string& ext);
