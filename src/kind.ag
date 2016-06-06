@@ -153,7 +153,7 @@ string findVault(const string& v)
     }
   if (!found)
     throw Exception("find vault", v + " not found");
-  verbosePrint("using vault " + fn.getFileName());
+  verbosePrint("found vault " + fn.getFileName());
   return fn.getFileName();
 }
 
@@ -202,7 +202,6 @@ void readVaultConfig(const string& vault, KindConfig& conf)
 }
 
 string getImageName(const KindConfig& conf,
-                    const string& vaultPath,
                     const DateTime& imageTime)
 {
   bool nonPortable = false;
@@ -219,7 +218,7 @@ string getImageName(const KindConfig& conf,
   if (!imageName.empty())
     imageName += '-';
 
-  string imageFullName =  vaultPath + "/" + imageName ;
+  string imageFullName =  conf.getString("vaultPath") + "/" + imageName ;
 
   if (conf.getBool("longImageName"))
     imageFullName += imageTime.getString('m');
@@ -260,7 +259,7 @@ void listImageInfo(const string& vault,
                    const string& backupSet)
 {
   readVaultConfig(vault, conf);
-  string vaultPath = findVault(vault);
+  string vaultPath = conf.getString("vaultPath");
   Images imageList = findImages(vaultPath, conf, true);
   cout << "== " << vault << " ==" << endl;
   for (auto img : imageList)
@@ -422,10 +421,10 @@ bool backupVault(const string& vault,
       readVaultConfig(vault, conf);
 
       // where to store
-      string vaultPath = findVault(vault);
+      string vaultPath = conf.getString("vaultPath");
 
       // image path
-      string imageFullName = getImageName(conf, vaultPath, imageTime);
+      string imageFullName = getImageName(conf, imageTime);
 
       bool backupNow = true;
 
@@ -439,7 +438,7 @@ bool backupVault(const string& vault,
       vector<SetRule> backupSetRule;
       int setRuleIdx = -1;
 
-      if (conf.hasKey("setRule"))
+      if (conf.getBool("useBackupSet"))
         {
           readSetRules(conf, setIdx, backupSetRule);
           if (!setIdx.empty())
@@ -531,7 +530,7 @@ bool backupVault(const string& vault,
               string lastPath = vaultPath + "/last";
               struct stat fstat;
 
-              // remove last (dir or symlink)
+              // remove "last" (dir or symlink)
               if (lstat(lastPath.c_str(), &fstat) == 0) // last exists
                 {
                   if (S_ISDIR(fstat.st_mode))
@@ -553,7 +552,7 @@ bool backupVault(const string& vault,
                   symlink(imageFullName.c_str(), lastPath.c_str());
                 }
               else if (linkType != "null")
-                cerr << "invalid Value in \"lastLink\"" << endl;
+                cerr << "invalid value in \"lastLink\"" << endl;
 
               // write expire date to file
               DateTime expireTime;
@@ -570,6 +569,7 @@ bool backupVault(const string& vault,
               expireFile << currentSet << "-" << expireTime.getString('m') << endl;
               expireFile << rule << endl;
             }
+	  //  conf.warnUnused();
         }
       return backupNow;
     }
@@ -587,9 +587,9 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
 
   readVaultConfig(vault, conf);
 
-  string vaultpath = findVault(vault);
+  string vaultPath = conf.getString("vaultPath");
 
-  Images imagelist = findImages(vaultpath, conf, true);
+  Images imagelist = findImages(vaultPath, conf, true);
 
   string lastValidImage;
   for (Image image : imagelist)
@@ -616,7 +616,7 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
               time_t expPeriod = stot(conf.getString("expireFailedImage"));
               if (expPeriod < 0)
                 throw Exception("expireFailedImage", "Time period must be positive");
-              expireTime = imageTime + stot(conf.getString("expireFailedImage"));
+              expireTime = imageTime + expPeriod;
               expireRule = "invalid image: " + conf.getString("expireFailedImage");
               debugPrint("- invalid image");
             }
@@ -645,6 +645,7 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
       else
         debugPrint("- current image - ignored");
     }
+  // conf.warnUnused();
 }
 
 /*AppGen:Main*/

@@ -55,7 +55,10 @@ bool KindConfig::hasKey(std::string key) const
 {
   key = trim(key);
   auto it = settings.find(key);
-  return it != settings.end();
+  bool found = it != settings.end();
+  if (found)
+    used[key]=true;
+  return found;
 }
 
 std::string KindConfig::getString(std::string key) const
@@ -64,6 +67,7 @@ std::string KindConfig::getString(std::string key) const
   auto it = settings.find(key);
   if (it == settings.end())
     throw Exception("get config key", std::string("No key \"") + key + "\"");
+  used[key]=true;
   if (it->second.size() != 1)
     throw Exception("get config key", std::string("Key \"") + key + "\" is no single value");
   return it->second[0];
@@ -75,6 +79,7 @@ Strings KindConfig::getStrings(std::string key) const
   auto it = settings.find(key);
   if (it == settings.end())
     throw Exception("get config key", std::string("No key \"") + key + "\"");
+  used[key]=true;
   return it->second;
 }
 
@@ -84,6 +89,7 @@ bool KindConfig::getBool(std::string key) const
   auto it = settings.find(key);
   if (it == settings.end())
     return false;
+  used[key]=true;
   if (it->second.size() != 1)
     throw Exception("get config key", std::string("Key \"") + key + "\" is no single value");
   std::string val = it->second[0];
@@ -105,6 +111,15 @@ void KindConfig::print(const string& prefix) const
       else if (!it->second.empty())
         cout << it->second[0];
       cout << endl;
+    }
+}
+
+void KindConfig::warnUnused(const string& prefix) const
+{
+  for (auto it = settings.begin(); it != settings.end(); ++it)
+    {
+      if (used.count(it->first) == 0 || ! used[it->first])
+	cout << "Warning: setting " << it->first << " unused" << endl;
     }
 }
 

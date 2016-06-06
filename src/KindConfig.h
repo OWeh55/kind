@@ -41,6 +41,8 @@ public:
   bool getBool(std::string key) const;
 
   void print(const std::string& prefix = "") const;
+  void warnUnused(const std::string& prefix = "") const;
+
 private:
   void split(const std::string& line,
              std::string& key,
@@ -48,6 +50,7 @@ private:
              std::string& value);
 
   std::map<std::string, Strings> settings;
+  mutable std::map<std::string, bool> used;
 };
 
 #endif
