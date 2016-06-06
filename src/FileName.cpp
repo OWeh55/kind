@@ -11,6 +11,8 @@ using namespace std;
 
 void FileName::setPath(const std::string& n)
 {
+  // set parts of n to path
+  // includes filename!
   if (n.size() == 0)
     throw Exception("FileName::setPath", "empty pathname");
   absolute = n[0] == pathdel;
@@ -43,6 +45,7 @@ FileName::FileName(const std::string& n)
   // last path component is name
   if (path.size() > 0)
     {
+      // last part of path is (file-)name
       name = path.back();
       path.pop_back();
 
