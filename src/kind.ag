@@ -193,12 +193,13 @@ void readVaultConfig(const string& vault, KindConfig& conf)
     conf.setBool("useBackupSet", true);
   else
     conf.setBool("useBackupSet", false);
-
+  /*
   if (conf.hasKey("userExcludeFile"))
     {
-      string userExcludeCommand = "cat " + conf.getString("userExcludeFile");
+      string userExcludeCommand = "cat %path/" + conf.getString("userExcludeFile");
       conf.addString("userExcludeCommand", userExcludeCommand);
     }
+  */
 }
 
 string getImageName(const KindConfig& conf,
