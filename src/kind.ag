@@ -738,6 +738,7 @@ int main(int argc, char* argv[])
       string logSizeFile = conf.getString("logSize");
       readSizes(logSizeFile);
 
+#if 0
       for (string vault : vaults)
         {
           if (doBackup)
@@ -746,7 +747,18 @@ int main(int argc, char* argv[])
           if (doExpire)
             expireVault(vault, conf, imageTime);
         }
-
+#endif
+      if (doBackup)
+	for (string vault : vaults)
+	  {
+            if (backupVault(vault, conf, imageTime, fullImage, forcedBackupSet))
+              writeSizes(logSizeFile);
+	  }
+ 
+     if (doExpire)
+	for (string vault : vaults)
+            expireVault(vault, conf, imageTime);
+ 
       if (!quiet)
         cout << DateTime::now().getString('h') << ": finished" << endl;
 
