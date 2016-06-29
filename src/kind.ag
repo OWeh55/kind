@@ -160,6 +160,7 @@ string findVault(const string& v)
 void readVaultConfig(const string& vault, KindConfig& conf)
 {
   string vaultPath = findVault(vault);
+
   const string& vaultConfigName = vaultPath + '/' + conf.getString("vaultConfigName");
   verbosePrint("reading vault config:");
   verbosePrint("  " + vaultConfigName);
@@ -193,28 +194,21 @@ void readVaultConfig(const string& vault, KindConfig& conf)
     conf.setBool("useBackupSet", true);
   else
     conf.setBool("useBackupSet", false);
-  /*
-  if (conf.hasKey("userExcludeFile"))
-    {
-      string userExcludeCommand = "cat %path/" + conf.getString("userExcludeFile");
-      conf.addString("userExcludeCommand", userExcludeCommand);
-    }
-  */
 }
 
 string getImageName(const KindConfig& conf,
                     const DateTime& imageTime)
 {
-  bool nonPortable = false;
+  char invalidCharacter = 0;
   string imageName = conf.getString("imageName");
-  for (unsigned int i = 0; !nonPortable && i < imageName.size(); ++i)
+  for (unsigned int i = 0; invalidCharacter == 0 && i < imageName.size(); ++i)
     {
       char c = imageName[i];
       if (!isalnum(c) && c != '.' && c != '_')
-        nonPortable = true;
+        invalidCharacter = c;
     }
-  if (nonPortable)
-    throw Exception("getImageName", "Invalid character in image name " + imageName);
+  if (invalidCharacter != 0)
+    throw Exception("getImageName", string("Invalid character \'") + invalidCharacter + "\' in image name \"" + imageName + "\"");
 
   if (!imageName.empty())
     imageName += '-';
