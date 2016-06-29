@@ -497,14 +497,18 @@ bool backupVault(const string& vault,
             } // if (!setIdx.empty())
         } // (conf.hasKey("setRule"))
 
-      if (backupNow)
+      if (!quiet)
         {
-          verbosePrint("backup to \"" + imageFullName + "\"");
-          if (setRuleIdx >= 0 && !quiet)
-            cout << "  backup set is \"" << currentSet << "\"" << endl;
+          if (backupNow)
+            {
+              if (setRuleIdx >= 0)
+                cout << "  backup set \"" << currentSet << "\" to \"" << imageFullName << "\"" << endl;
+              else
+                cout << "  backup to \"" << imageFullName << "\"" << endl;
+            }
+          else
+            cout << "  no backup set needs update" << endl;
         }
-      else if (!quiet)
-        cout << "  no backup set needs update" << endl;
 
       if (backupNow)
         {
@@ -522,6 +526,7 @@ bool backupVault(const string& vault,
 
           if (!dryRun)
             {
+              // hard or soft link to last image path
               string lastPath = vaultPath + "/last";
               struct stat fstat;
 
