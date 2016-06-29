@@ -570,7 +570,7 @@ bool backupVault(const string& vault,
               expireFile << currentSet << "-" << expireTime.getString('m') << endl;
               expireFile << rule << endl;
             }
-	  //  conf.warnUnused();
+          //  conf.warnUnused();
         }
       return backupNow;
     }
@@ -749,16 +749,16 @@ int main(int argc, char* argv[])
         }
 #endif
       if (doBackup)
-	for (string vault : vaults)
-	  {
+        for (string vault : vaults)
+          {
             if (backupVault(vault, conf, imageTime, fullImage, forcedBackupSet))
               writeSizes(logSizeFile);
-	  }
- 
-     if (doExpire)
-	for (string vault : vaults)
-            expireVault(vault, conf, imageTime);
- 
+          }
+
+      if (doExpire)
+        for (string vault : vaults)
+          expireVault(vault, conf, imageTime);
+
       if (!quiet)
         cout << DateTime::now().getString('h') << ": finished" << endl;
 
