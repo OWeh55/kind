@@ -7,6 +7,7 @@
 #include "DateTime.h"
 #include "expiretools.h"
 
+// class decribing one image
 class Image
 {
 public:
