@@ -223,26 +223,28 @@ string getImageName(const KindConfig& conf,
   return imageFullName;
 }
 
-Images findImages(const string& vaultpath, const KindConfig& conf, bool all)
+Images findImages(const string& vaultpath, const KindConfig& conf, bool alsoInvalidImages)
 {
   Strings dirs;
   debugPrint("searching images in " + vaultpath);
   dirList(vaultpath, dirs);
 
+  string imgName = conf.getString("imageName");
+
   Images imageList;
   for (string dir : dirs)
     {
       FileName fn(dir);
-      string imgname = conf.getString("imageName");
-      if (startsWith(fn.getName(), imgname))
+      if (startsWith(fn.getName(), imgName))
         {
           debugPrint("Checking " + dir);
           Image image(dir);
 
-          if (all || image.valid)
+          if (alsoInvalidImages || image.valid)
             imageList.push_back(image);
         }
     }
+  // sort by name == sort by creation time
   if (imageList.size() > 1)
     sort(imageList.begin(), imageList.end());
   return imageList;
@@ -494,6 +496,8 @@ bool backupVault(const string& vault,
                   else
                     throw Exception("force backup of set " + forcedBackupSet, " set not exists");
                 }
+              if (conf.getBool("appendSetToImageName"))
+                imageFullName += "-" + currentSet;
             } // if (!setIdx.empty())
         } // (conf.hasKey("setRule"))
 
@@ -683,6 +687,7 @@ int main(int argc, char* argv[])
                      "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
       conf.addString("logSize", "");
       conf.addString("lastLink", "symLink");
+      conf.addString("appendSetToImageName", "false");
 
       if (listConfig)
         {

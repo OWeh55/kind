@@ -11,7 +11,7 @@ using namespace std;
 Image::Image(const string& dir): name(dir)
 {
   FileName fn(name);
-  string dummy;// image "name"
+  string dummy; // image "name"
   stringToDate(fn.getName(), time, dummy);
   string expireFileName = name + "/expires";
 
