@@ -40,8 +40,10 @@
   % kurz-Option, lang-Option, Typ, Variablenname, Erklärung, Default-Wert
   opt: c, masterconfig, string, masterConfig, Master config file, ""
   opt2: if not given or empty kind looks for
-  opt2:   /etc/kind/master.conf
+  opt2:   /etc/kind.master
   opt2:   /ffp/etc/kind/master.conf
+  opt2:   /etc/kind/master.conf
+  opt2:   /ffp/etc/kind.master
   opt: f, full, void, fullImage, Force full image == initial backup, false
   opt: B, backup, void, doBackup, Backup, false
   opt: E, expire, void, doExpire, Expire, false
@@ -126,18 +128,19 @@ void readMasterConfig(string fn, KindConfig& conf)
 {
   if (!fn.empty())  // master config given by user on commandline
     conf.addFile(fn);
-  else 
+  else
     {
-      vector<string> fns{
-	"/etc/kind/master.conf",
-	  "/etc/kind.master",
-	  "/ffp/etc/kind/master.conf",
-	  "/ffp/etc/kind.master",
-	  };
-      int i=conf.addOneFile(fns);
-      fn=fns[i];
+      vector<string> fns
+      {
+        "/etc/kind/master.conf",
+        "/etc/kind.master",
+        "/ffp/etc/kind/master.conf",
+        "/ffp/etc/kind.master",
+      };
+      int i = conf.addOneFile(fns);
+      fn = fns[i];
     }
-  verbosePrint("Read master config " + fn );
+  verbosePrint("Read master config " + fn);
 }
 
 string findVault(const string& v)
@@ -161,14 +164,14 @@ void readVaultConfig(const string& vault, KindConfig& conf)
 {
   string vaultPath = findVault(vault);
 
-  Strings configNames= conf.getStrings("vaultConfigName");
+  Strings configNames = conf.getStrings("vaultConfigName");
 
   vector<string> vaultConfigNames;
-  for (auto name:configNames)
+  for (auto name : configNames)
     vaultConfigNames.push_back(vaultPath + '/' + name);
 
   int i = conf.addOneFile(vaultConfigNames);
-  verbosePrint("Read vault config "+vaultConfigNames[i]);
+  verbosePrint("Read vault config " + vaultConfigNames[i]);
 
   // postprocessing
 
