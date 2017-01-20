@@ -51,6 +51,20 @@ void KindConfig::addFile(const std::string& fn)
     }
 }
 
+int KindConfig::addOneFile(const std::vector<std::string> &fns)
+{
+  if (fns.empty())
+    throw Exception("Read config file", "file list empty");
+  unsigned int i=0;
+  while (!fileExists(fns[i]) && i<fns.size())
+    i++;
+
+  if (i>=fns.size())
+    throw Exception("Read config file","no file found");
+  addFile(fns[i]);
+  return i;
+}
+
 bool KindConfig::hasKey(std::string key) const
 {
   key = trim(key);

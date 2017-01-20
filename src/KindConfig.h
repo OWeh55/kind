@@ -5,6 +5,7 @@
 #include <string>
 #include "Strings.h"
 #include "stringtools.h"
+#include "filetools.h"
 
 class KindConfig
 {
@@ -13,6 +14,7 @@ public:
   KindConfig(const std::string& fn);
 
   void addFile(const std::string& fn);
+  int addOneFile(const std::vector<std::string>& fns);
 
   void addString(const std::string& key, const std::string& value)
   {

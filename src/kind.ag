@@ -122,22 +122,22 @@ void debugPrint(const string& text)
     cout << "    " << text << endl;
 }
 
-void readMasterConfig1(const string& fn, KindConfig& conf)
-{
-  verbosePrint("reading master config " + fn);
-  conf.addFile(fn);
-}
-
-void readMasterConfig(const string& fn, KindConfig& conf)
+void readMasterConfig(string fn, KindConfig& conf)
 {
   if (!fn.empty())  // master config given by user on commandline
-    readMasterConfig1(fn, conf);
-  else if (fileExists("/etc/kind/master.conf"))
-    readMasterConfig1("/etc/kind/master.conf", conf);
-  else if (fileExists("/ffp/etc/kind/master.conf"))
-    readMasterConfig1("/ffp/etc/kind/master.conf", conf);
-  else
-    throw Exception("MasterConfig", "no file");
+    conf.addFile(fn);
+  else 
+    {
+      vector<string> fns{
+	"/etc/kind/master.conf",
+	  "/etc/kind.master",
+	  "/ffp/etc/kind/master.conf",
+	  "/ffp/etc/kind.master",
+	  };
+      int i=conf.addOneFile(fns);
+      fn=fns[i];
+    }
+  verbosePrint("Read master config " + fn );
 }
 
 string findVault(const string& v)
@@ -161,10 +161,14 @@ void readVaultConfig(const string& vault, KindConfig& conf)
 {
   string vaultPath = findVault(vault);
 
-  const string& vaultConfigName = vaultPath + '/' + conf.getString("vaultConfigName");
-  verbosePrint("reading vault config:");
-  verbosePrint("  " + vaultConfigName);
-  conf.addFile(vaultConfigName);
+  Strings configNames= conf.getStrings("vaultConfigName");
+
+  vector<string> vaultConfigNames;
+  for (auto name:configNames)
+    vaultConfigNames.push_back(vaultPath + '/' + name);
+
+  int i = conf.addOneFile(vaultConfigNames);
+  verbosePrint("Read vault config "+vaultConfigNames[i]);
 
   // postprocessing
 
@@ -676,6 +680,7 @@ int main(int argc, char* argv[])
       // default-values
       conf.addString("imageName", "image");
       conf.addString("vaultConfigName", "kind/vault.conf");
+      conf.addString("vaultConfigName", "vault.conf");
       conf.addString("expireFailedImage", "3 days");
       conf.addString("expireRule", "* * * * 1 month");
       conf.addString("ping", "ping -c 1 -W 5 %host");
