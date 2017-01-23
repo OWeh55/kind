@@ -64,4 +64,3 @@ Strings getExclusions(const KindConfig& conf)
     }
   return exclusions;
 }
-

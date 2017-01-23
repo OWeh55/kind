@@ -144,7 +144,7 @@ string getWord(const string& s, unsigned int& i)
   if (!isalpha(s[i]) && s[i] != '-' && s[i] != '_')
     throw Exception("getWord", "letter expected");
   string is;
-  while (i < s.size() && (isalpha(s[i]) || s[i] == '-' || s[i] == '_'))
+  while (i < s.size() && (isalnum(s[i]) || s[i] == '-' || s[i] == '_'))
     {
       is += s[i];
       ++i;
