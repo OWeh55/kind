@@ -49,7 +49,8 @@
   opt: E, expire, void, doExpire, Expire, false
   opt: C, listconfig, void, listConfig, Show configuration, false
   opt: I, listimages, void, listImages, List data of images, false
-  opt2:   if none of backup, expire, listconfig and listimages is specified,
+  opt: V, vaultlist, void, listVault, List vault director[y|ies], false
+  opt2:   if none of backup, expire, listconfig, listimages, vaultlist is specified,
   opt2:   backup and expire is assumed.
   opt2:   listconfig and listimages cannot be combined with other actions
   opt: D, dryrun, Void, dryRun, Dry run (no real backup), false
@@ -743,6 +744,15 @@ int main(int argc, char* argv[])
           exit(0);
         }
 
+      if (listVault)
+        {
+          for (string vault : vaults)
+            {
+              string vaultPath = findVault(vault);
+              cout << vaultPath << endl;
+            }
+          exit(0);
+        }
       // previous actions do not need locking
       lockFile = conf.getString("lockfile");
       createLock(lockFile);
