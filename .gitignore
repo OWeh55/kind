@@ -1,0 +1,7 @@
+*.o
+*.orig
+src/stot
+src/stot.cpp
+src/depend
+src/kind
+src/kind.cpp
