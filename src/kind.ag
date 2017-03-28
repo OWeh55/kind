@@ -35,7 +35,7 @@
   prog: archiving backup
   %% Beschreibung Parameter
   % symbolischerName, Art, Typ,   Variablenname, Erklärung, Default-Wert
-  para: vault_or_group, required, string, vault, Vault to backup
+  para: vault_or_group, required, string, vault_or_group, Vault to backup
   %% Beschreibung der Optionen
   % kurz-Option, lang-Option, Typ, Variablenname, Erklärung, Default-Wert
   opt: c, masterconfig, string, masterConfig, Master config file, ""
@@ -711,22 +711,22 @@ int main(int argc, char* argv[])
         throw Exception("read master configuration", "no banks defined");
 
       vector<string> vaults;
-      string groupname = "group_" + vault;
+      string groupname = "group_" + vault_or_group;
       if (conf.hasKey(groupname))
         {
           vaults = conf.getStrings(groupname);
-          vault.clear(); // no single vault but group
+          vault_or_group.clear(); // no single vault but group
         }
       else
-        vaults.push_back(vault);
+        vaults.push_back(vault_or_group);
 
       if (listConfig)
         {
           cout << "global config:" << endl;
           conf.print(".   ");
-          if (!vault.empty())
+          if (!vault_or_group.empty())
             {
-              readVaultConfig(vault, conf);
+              readVaultConfig(vault_or_group, conf);
               cout << "vault config:" << endl;
               conf.print(".   ");
             }
@@ -746,6 +746,7 @@ int main(int argc, char* argv[])
 
       if (listVault)
         {
+	  sort(vaults.begin(),vaults.end());
           for (string vault : vaults)
             {
               string vaultPath = findVault(vault);
