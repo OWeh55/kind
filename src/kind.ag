@@ -576,7 +576,7 @@ bool backupVault(const string& vault,
     }
   catch (Exception ex)
     {
-      cerr << "Exception in vault " << vault << ": " << ex.what() << endl;
+      cerr << "*_Exception_* in vault " << vault << ": " << ex.what() << endl;
       return false;
     }
 }
@@ -639,7 +639,7 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
                 }
               catch (Exception ex)
                 {
-                  cerr << "Exception: " << ex.what() << endl;
+                  cerr << "*_Exception_* : " << ex.what() << endl;
                 }
             }
         }
@@ -753,17 +753,17 @@ int main(int argc, char* argv[])
     }
   catch (const Exception& ex)
     {
-      cerr << "Exception: " << ex.what() << endl;
+      cerr << "*_Exception_*: " << ex.what() << endl;
       exitCode = 1;
     }
   catch (const char* msg)
     {
-      cerr << "Exception(char*): " << msg << endl;
+      cerr << "*_Exception_* (char*): " << msg << endl;
       exitCode = 1;
     }
   catch (const string& msg)
     {
-      cerr << "Exception(string): " << msg << endl;
+      cerr << "*_Exception_* (string): " << msg << endl;
       exitCode = 1;
     }
   removeLock(lockFile);
