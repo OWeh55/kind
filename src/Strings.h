@@ -19,6 +19,4 @@ public:
     return *this;
   }
 };
-
-
 #endif

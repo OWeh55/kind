@@ -11,7 +11,7 @@ class DateTime
 public:
   static DateTime now()
   {
-    return DateTime(time(NULL));
+    return DateTime(time(nullptr));
   }
 
   DateTime(): theTime(0) {}
@@ -19,6 +19,11 @@ public:
   explicit DateTime(time_t t): theTime(t) {}
 
   DateTime(int Y, int M, int D, int h, int m, int s);
+
+  void get(int& year, int& month, int& mday,
+           int& hour, int& min, int& sec) const;
+
+  std::string getString(char typ = 'h') const;
 
   friend DateTime operator+(const DateTime& t1, time_t t2)
   {
@@ -31,20 +36,15 @@ public:
     return *this;
   }
 
-  void get(int& year, int& month, int& mday,
-           int& hour, int& min, int& sec) const;
-
-  std::string getString(char typ = 'h') const;
+  friend DateTime operator-(const DateTime& t1, time_t t2)
+  {
+    return DateTime(t1.theTime - t2);
+  }
 
   const DateTime& operator-=(time_t t2)
   {
     theTime -= t2;
     return *this;
-  }
-
-  friend DateTime operator-(const DateTime& t1, time_t t2)
-  {
-    return DateTime(t1.theTime - t2);
   }
 
   friend time_t operator-(const DateTime& t1, const DateTime& t2)

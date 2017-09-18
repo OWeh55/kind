@@ -26,7 +26,7 @@ Image::Image(const string& dir): name(dir)
       Strings expireText;
       file2Strings(expireFileName, expireText);
       if (expireText.empty())
-        throw Exception("expireDate", "expire empty");
+        throw Exception("expireDate", "expire file empty");
       stringToDate(expireText[0], expire, series);
       expireRule = expireText[1];
     }
@@ -42,7 +42,6 @@ void Image::printInfo() const
       cout << "created: " << time.getString('h') << endl;
       cout << "expires: " << expire.getString('h') << " -  " << timeString(expire - DateTime::now()) << endl;
     }
-
   else
     cout << "invalid" << endl;
 }

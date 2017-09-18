@@ -22,7 +22,8 @@ char Lexer::getChar()
 
 void Lexer::skipChar()
 {
-  pos++;
+  if (pos < str.size())
+    pos++;
 }
 
 void Lexer::skipWhiteSpace()
@@ -43,7 +44,7 @@ void Lexer::nextToken()
       if (isdigit(f))
         {
           // token is number
-          type = integer; // assume "integer"
+          type = integer; // assume "integer", changed later if necessarry
           // number
           f = nextChar();
           while (isdigit(f) || f == '.')
@@ -78,11 +79,9 @@ void Lexer::nextToken()
         }
       else if (isalpha(f))
         {
-          //    cout << "id"<<endl;
           // identifier
           type = identifier;
           f = nextChar();
-          //    cout << (int)f << " " << f << endl;
           while (isalnum(f))
             {
               token += f;
@@ -101,7 +100,6 @@ void Lexer::nextToken()
 
 long int Lexer::getInt()
 {
-  // cout << "type: " << type << " token:" << token << endl;
   if (type != integer)
     throw Exception("getInt", "integer value expected");
   int res = stol(token);

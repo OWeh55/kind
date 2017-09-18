@@ -64,7 +64,7 @@ void FileName::setName(const string& n)
 {
   for (unsigned int i = 0; i < n.size(); ++i)
     if (n[i] == pathdel)
-      throw Exception("Filename", "path delimiter in name");
+      throw Exception("Filename::setName", "path delimiter in name");
   name = n;
 }
 
@@ -73,9 +73,9 @@ void FileName::setExtension(const string& n)
   for (unsigned int i = 0; i < n.size(); ++i)
     {
       if (n[i] == extdel)
-        throw Exception("Filename", "extension delimiter in extension");
+        throw Exception("Filename::setExtension", "extension delimiter in extension");
       if (n[i] == pathdel)
-        throw Exception("Filename", "path delimiter in extension");
+        throw Exception("Filename::setExtension", "path delimiter in extension");
     }
   extension = n;
 }
@@ -144,4 +144,3 @@ int main(int argc, char** argv)
     }
 }
 #endif
-
