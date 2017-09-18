@@ -259,7 +259,7 @@ Images findImages(const string& vaultpath, const KindConfig& conf, bool alsoInva
 }
 
 void listImageInfo(const string& vault,
-                   KindConfig conf /*Copy!*/ ,
+                   KindConfig conf /*Copy!*/,
                    const DateTime& imageTime,
                    const string& backupSet)
 {
@@ -337,7 +337,7 @@ void doBackup(const string& vault,
   if (!dryRun)
     {
       ofstream error(errorfile);
-      error << "failed" << endl;
+      error << "rsync not successfully completed" << endl;
       error.close();
     }
 
@@ -391,8 +391,8 @@ void doBackup(const string& vault,
       int rc;
       backupResult = localExec(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
       if (rc == 0 ||  // "no error"
-          rc == 24 || // "vanished source files" (ignored)
-          rc == 6144) // workaround for wrong exit code ??!!
+          rc == 24 // "vanished source files" (ignored)
+         )
         {
           unlink(errorfile.c_str());
           double st = 0;
@@ -414,7 +414,7 @@ void doBackup(const string& vault,
 }
 
 bool backupVault(const string& vault,
-                 KindConfig conf /*Copy!*/ ,
+                 KindConfig conf /*Copy!*/,
                  const DateTime& imageTime,
                  bool fullImage,
                  const string& forcedBackupSet)
@@ -746,7 +746,7 @@ int main(int argc, char* argv[])
 
       if (listVault)
         {
-	  sort(vaults.begin(),vaults.end());
+          sort(vaults.begin(), vaults.end());
           for (string vault : vaults)
             {
               string vaultPath = findVault(vault);

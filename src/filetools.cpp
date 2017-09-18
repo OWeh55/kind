@@ -241,7 +241,13 @@ Strings localExec(const std::string& cmd,
           if (debug)
             std::cout << ">>" << input << "<<" << std::endl;
         }
-      rc = pclose(fd);
+
+      int st = pclose(fd);
+      if (WIFEXITED(st))
+        rc = WEXITSTATUS(st);
+      else
+        rc = 0;
+
       if (debug)
         std::cout << "    result code: " << rc << std::endl;
     }
@@ -256,7 +262,7 @@ Strings localExec(const std::string& cmd,
   if (log.is_open())
     {
       log << "--------------------------------------------------------" << std::endl;
-      log << "result code: " << rc << std::endl;
+      log << "pclose result: " << rc << std::endl;
     }
   return res;
 }
