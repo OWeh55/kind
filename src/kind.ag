@@ -433,6 +433,9 @@ bool backupVault(const string& vault,
 
       bool backupNow = true;
 
+      if (conf.getString("path").empty()) // empty path string disables backup
+	backupNow = false;
+
       // existing images
       Images validImageList = findImages(vaultPath, conf, false);
       string currentSet = "expire"; // we are not using backupSets
@@ -443,7 +446,7 @@ bool backupVault(const string& vault,
       vector<SetRule> backupSetRule;
       int setRuleIdx = -1;
 
-      if (conf.getBool("useBackupSet"))
+      if (conf.getBool("useBackupSet") && backupNow)
         {
           readSetRules(conf, setIdx, backupSetRule);
           if (!setIdx.empty())

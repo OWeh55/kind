@@ -262,7 +262,7 @@ Strings localExec(const std::string& cmd,
   if (log.is_open())
     {
       log << "--------------------------------------------------------" << std::endl;
-      log << "pclose result: " << rc << std::endl;
+      log << "rsync exit value: " << rc << std::endl;
     }
   return res;
 }

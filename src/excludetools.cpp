@@ -58,7 +58,13 @@ Strings getExclusions(const KindConfig& conf)
           int rc;
           Strings excludes2 = remoteExec(rshCommand, getExcludeFileCommand, rc, debug);
           if (rc == 0)
-            exclusions += excludes2;
+            {
+              for (string s : excludes2)
+                {
+                  if (s[0] != '#')
+                    exclusions += s;
+                }
+            }
         } // if (shellMode)
 
     }
