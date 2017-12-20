@@ -1,3 +1,4 @@
+#define _FILE_OFFSET_BITS 64
 #include <stdio.h>
 #include <sys/file.h>
 #include <sys/stat.h>
