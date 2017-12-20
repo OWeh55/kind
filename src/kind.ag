@@ -41,17 +41,14 @@
   opt: c, masterconfig, string, masterConfig, Master config file, ""
   opt2: if not given or empty kind looks for
   opt2:   /etc/kind.master
-  opt2:   /ffp/etc/kind/master.conf
   opt2:   /etc/kind/master.conf
-  opt2:   /ffp/etc/kind.master
   opt: f, full, void, fullImage, Force full image == initial backup, false
   opt: B, backup, void, doBackup, Backup, false
   opt: E, expire, void, doExpire, Expire, false
   opt: C, listconfig, void, listConfig, Show configuration, false
   opt: I, listimages, void, listImages, List data of images, false
   opt: V, vaultlist, void, listVault, List vault director[y|ies], false
-  opt2:   if none of backup, expire, listconfig, listimages, vaultlist is specified,
-  opt2:   backup and expire is assumed.
+  opt2:   if no action is given, backup and expire is assumed.
   opt2:   listconfig and listimages cannot be combined with other actions
   opt: D, dryrun, Void, dryRun, Dry run (no real backup), false
   opt: F, forcebackup, string, forcedBackupSet, Create image for specified backup set, ""
@@ -134,9 +131,7 @@ void readMasterConfig(string fn, KindConfig& conf)
       vector<string> fns
       {
         "/etc/kind/master.conf",
-        "/etc/kind.master",
-        "/ffp/etc/kind/master.conf",
-        "/ffp/etc/kind.master",
+        "/etc/kind.master"
       };
       int i = conf.addOneFile(fns);
       fn = fns[i];
