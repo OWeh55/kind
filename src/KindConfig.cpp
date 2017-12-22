@@ -51,13 +51,27 @@ void KindConfig::addFile(const std::string& fn)
     }
 }
 
+int KindConfig::addOneFile(const std::vector<std::string>& fns)
+{
+  if (fns.empty())
+    throw Exception("Read config file", "file list empty");
+  unsigned int i = 0;
+  while (!fileExists(fns[i]) && i < fns.size())
+    i++;
+
+  if (i >= fns.size())
+    throw Exception("Read config file", "no file found");
+  addFile(fns[i]);
+  return i;
+}
+
 bool KindConfig::hasKey(std::string key) const
 {
   key = trim(key);
   auto it = settings.find(key);
   bool found = it != settings.end();
   if (found)
-    used[key]=true;
+    used[key] = true;
   return found;
 }
 
@@ -67,7 +81,7 @@ std::string KindConfig::getString(std::string key) const
   auto it = settings.find(key);
   if (it == settings.end())
     throw Exception("get config key", std::string("No key \"") + key + "\"");
-  used[key]=true;
+  used[key] = true;
   if (it->second.size() != 1)
     throw Exception("get config key", std::string("Key \"") + key + "\" is no single value");
   return it->second[0];
@@ -79,7 +93,7 @@ Strings KindConfig::getStrings(std::string key) const
   auto it = settings.find(key);
   if (it == settings.end())
     throw Exception("get config key", std::string("No key \"") + key + "\"");
-  used[key]=true;
+  used[key] = true;
   return it->second;
 }
 
@@ -89,7 +103,7 @@ bool KindConfig::getBool(std::string key) const
   auto it = settings.find(key);
   if (it == settings.end())
     return false;
-  used[key]=true;
+  used[key] = true;
   if (it->second.size() != 1)
     throw Exception("get config key", std::string("Key \"") + key + "\" is no single value");
   std::string val = it->second[0];
@@ -119,7 +133,7 @@ void KindConfig::warnUnused(const string& prefix) const
   for (auto it = settings.begin(); it != settings.end(); ++it)
     {
       if (used.count(it->first) == 0 || ! used[it->first])
-	cout << "Warning: setting " << it->first << " unused" << endl;
+        cout << "Warning: setting " << it->first << " unused" << endl;
     }
 }
 

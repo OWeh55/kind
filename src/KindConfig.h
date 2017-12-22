@@ -1,21 +1,21 @@
 #ifndef Kind_CONFIG_H
 #define Kind_CONFIG_H
 
-//#include <fstream>
 #include <map>
 #include <string>
 #include "Strings.h"
 #include "stringtools.h"
+#include "filetools.h"
 
 class KindConfig
 {
 public:
   KindConfig() {}
   KindConfig(const std::string& fn);
-  //  KindConfig(std::istream& is);
 
   void addFile(const std::string& fn);
-  //  void addFile(std::istream& is);
+  int addOneFile(const std::vector<std::string>& fns);
+
   void addString(const std::string& key, const std::string& value)
   {
     settings[key].push_back(value);

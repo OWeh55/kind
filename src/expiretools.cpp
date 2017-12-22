@@ -62,10 +62,17 @@ void stringToDate(const string& dateString, DateTime& t, string& label)
   int D = stoi(ss[3]);
   int h = stoi(ss[4]);
   int m = 0, s = 0;
-  if (ss.size() > 5) // longImageName
-    m = stoi(ss[5]);
-  if (ss.size() > 6)
-    s = stoi(ss[6]);
+  try    // longImageName
+    {
+      if (ss.size() > 5)
+        m = stoi(ss[5]);
+      if (ss.size() > 6)
+        s = stoi(ss[6]);
+    }
+  catch (const std::invalid_argument& ex)
+    {
+      // ignore this. image name may contain backup set name
+    }
   t = DateTime(Y, M, D, h, m, s);
 }
 

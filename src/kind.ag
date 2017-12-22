@@ -35,20 +35,20 @@
   prog: archiving backup
   %% Beschreibung Parameter
   % symbolischerName, Art, Typ,   Variablenname, Erklärung, Default-Wert
-  para: vault_or_group, required, string, vault, Vault to backup
+  para: vault_or_group, required, string, vault_or_group, Vault to backup
   %% Beschreibung der Optionen
   % kurz-Option, lang-Option, Typ, Variablenname, Erklärung, Default-Wert
   opt: c, masterconfig, string, masterConfig, Master config file, ""
   opt2: if not given or empty kind looks for
+  opt2:   /etc/kind.master
   opt2:   /etc/kind/master.conf
-  opt2:   /ffp/etc/kind/master.conf
   opt: f, full, void, fullImage, Force full image == initial backup, false
   opt: B, backup, void, doBackup, Backup, false
   opt: E, expire, void, doExpire, Expire, false
   opt: C, listconfig, void, listConfig, Show configuration, false
   opt: I, listimages, void, listImages, List data of images, false
-  opt2:   if none of backup, expire, listconfig and listimages is specified,
-  opt2:   backup and expire is assumed.
+  opt: V, vaultlist, void, listVault, List vault director[y|ies], false
+  opt2:   if no action is given, backup and expire is assumed.
   opt2:   listconfig and listimages cannot be combined with other actions
   opt: D, dryrun, Void, dryRun, Dry run (no real backup), false
   opt: F, forcebackup, string, forcedBackupSet, Create image for specified backup set, ""
@@ -122,22 +122,21 @@ void debugPrint(const string& text)
     cout << "    " << text << endl;
 }
 
-void readMasterConfig1(const string& fn, KindConfig& conf)
-{
-  verbosePrint("reading master config " + fn);
-  conf.addFile(fn);
-}
-
-void readMasterConfig(const string& fn, KindConfig& conf)
+void readMasterConfig(string fn, KindConfig& conf)
 {
   if (!fn.empty())  // master config given by user on commandline
-    readMasterConfig1(fn, conf);
-  else if (fileExists("/etc/kind/master.conf"))
-    readMasterConfig1("/etc/kind/master.conf", conf);
-  else if (fileExists("/ffp/etc/kind/master.conf"))
-    readMasterConfig1("/ffp/etc/kind/master.conf", conf);
+    conf.addFile(fn);
   else
-    throw Exception("MasterConfig", "no file");
+    {
+      vector<string> fns
+      {
+        "/etc/kind/master.conf",
+        "/etc/kind.master"
+      };
+      int i = conf.addOneFile(fns);
+      fn = fns[i];
+    }
+  verbosePrint("Read master config " + fn);
 }
 
 string findVault(const string& v)
@@ -160,10 +159,15 @@ string findVault(const string& v)
 void readVaultConfig(const string& vault, KindConfig& conf)
 {
   string vaultPath = findVault(vault);
-  const string& vaultConfigName = vaultPath + '/' + conf.getString("vaultConfigName");
-  verbosePrint("reading vault config:");
-  verbosePrint("  " + vaultConfigName);
-  conf.addFile(vaultConfigName);
+
+  Strings configNames = conf.getStrings("vaultConfigName");
+
+  vector<string> vaultConfigNames;
+  for (auto name : configNames)
+    vaultConfigNames.push_back(vaultPath + '/' + name);
+
+  int i = conf.addOneFile(vaultConfigNames);
+  verbosePrint("Read vault config " + vaultConfigNames[i]);
 
   // postprocessing
 
@@ -193,28 +197,21 @@ void readVaultConfig(const string& vault, KindConfig& conf)
     conf.setBool("useBackupSet", true);
   else
     conf.setBool("useBackupSet", false);
-  /*
-  if (conf.hasKey("userExcludeFile"))
-    {
-      string userExcludeCommand = "cat %path/" + conf.getString("userExcludeFile");
-      conf.addString("userExcludeCommand", userExcludeCommand);
-    }
-  */
 }
 
 string getImageName(const KindConfig& conf,
                     const DateTime& imageTime)
 {
-  bool nonPortable = false;
+  char invalidCharacter = 0;
   string imageName = conf.getString("imageName");
-  for (unsigned int i = 0; !nonPortable && i < imageName.size(); ++i)
+  for (unsigned int i = 0; invalidCharacter == 0 && i < imageName.size(); ++i)
     {
       char c = imageName[i];
       if (!isalnum(c) && c != '.' && c != '_')
-        nonPortable = true;
+        invalidCharacter = c;
     }
-  if (nonPortable)
-    throw Exception("getImageName", "Invalid character in image name " + imageName);
+  if (invalidCharacter != 0)
+    throw Exception("getImageName", string("Invalid character \'") + invalidCharacter + "\' in image name \"" + imageName + "\"");
 
   if (!imageName.empty())
     imageName += '-';
@@ -229,33 +226,35 @@ string getImageName(const KindConfig& conf,
   return imageFullName;
 }
 
-Images findImages(const string& vaultpath, const KindConfig& conf, bool all)
+Images findImages(const string& vaultpath, const KindConfig& conf, bool alsoInvalidImages)
 {
   Strings dirs;
   debugPrint("searching images in " + vaultpath);
   dirList(vaultpath, dirs);
 
+  string imgName = conf.getString("imageName");
+
   Images imageList;
   for (string dir : dirs)
     {
       FileName fn(dir);
-      string imgname = conf.getString("imageName");
-      if (startsWith(fn.getName(), imgname))
+      if (startsWith(fn.getName(), imgName))
         {
           debugPrint("Checking " + dir);
           Image image(dir);
 
-          if (all || image.valid)
+          if (alsoInvalidImages || image.valid)
             imageList.push_back(image);
         }
     }
+  // sort by name == sort by creation time
   if (imageList.size() > 1)
     sort(imageList.begin(), imageList.end());
   return imageList;
 }
 
 void listImageInfo(const string& vault,
-                   KindConfig conf /*Copy!*/ ,
+                   KindConfig conf /*Copy!*/,
                    const DateTime& imageTime,
                    const string& backupSet)
 {
@@ -333,7 +332,7 @@ void doBackup(const string& vault,
   if (!dryRun)
     {
       ofstream error(errorfile);
-      error << "failed" << endl;
+      error << "rsync not successfully completed" << endl;
       error.close();
     }
 
@@ -387,8 +386,8 @@ void doBackup(const string& vault,
       int rc;
       backupResult = localExec(rsyncCmd, rc, debug, imageFullName + "/rsync-log");
       if (rc == 0 ||  // "no error"
-          rc == 24 || // "vanished source files" (ignored)
-          rc == 6144) // workaround for wrong exit code ??!!
+          rc == 24 // "vanished source files" (ignored)
+         )
         {
           unlink(errorfile.c_str());
           double st = 0;
@@ -410,7 +409,7 @@ void doBackup(const string& vault,
 }
 
 bool backupVault(const string& vault,
-                 KindConfig conf /*Copy!*/ ,
+                 KindConfig conf /*Copy!*/,
                  const DateTime& imageTime,
                  bool fullImage,
                  const string& forcedBackupSet)
@@ -429,6 +428,9 @@ bool backupVault(const string& vault,
 
       bool backupNow = true;
 
+      if (conf.getString("path").empty()) // empty path string disables backup
+	backupNow = false;
+
       // existing images
       Images validImageList = findImages(vaultPath, conf, false);
       string currentSet = "expire"; // we are not using backupSets
@@ -439,7 +441,7 @@ bool backupVault(const string& vault,
       vector<SetRule> backupSetRule;
       int setRuleIdx = -1;
 
-      if (conf.getBool("useBackupSet"))
+      if (conf.getBool("useBackupSet") && backupNow)
         {
           readSetRules(conf, setIdx, backupSetRule);
           if (!setIdx.empty())
@@ -500,17 +502,23 @@ bool backupVault(const string& vault,
                   else
                     throw Exception("force backup of set " + forcedBackupSet, " set not exists");
                 }
+              if (conf.getBool("appendSetToImageName"))
+                imageFullName += "-" + currentSet;
             } // if (!setIdx.empty())
         } // (conf.hasKey("setRule"))
 
-      if (backupNow)
+      if (!quiet)
         {
-          verbosePrint("backup to \"" + imageFullName + "\"");
-          if (setRuleIdx >= 0 && !quiet)
-            cout << "  backup set is \"" << currentSet << "\"" << endl;
+          if (backupNow)
+            {
+              if (setRuleIdx >= 0)
+                cout << "  backup set \"" << currentSet << "\" to \"" << imageFullName << "\"" << endl;
+              else
+                cout << "  backup to \"" << imageFullName << "\"" << endl;
+            }
+          else
+            cout << "  no backup set needs update" << endl;
         }
-      else if (!quiet)
-        cout << "  no backup set needs update" << endl;
 
       if (backupNow)
         {
@@ -528,6 +536,7 @@ bool backupVault(const string& vault,
 
           if (!dryRun)
             {
+              // hard or soft link to last image path
               string lastPath = vaultPath + "/last";
               struct stat fstat;
 
@@ -570,7 +579,7 @@ bool backupVault(const string& vault,
               expireFile << currentSet << "-" << expireTime.getString('m') << endl;
               expireFile << rule << endl;
             }
-	  //  conf.warnUnused();
+          //  conf.warnUnused();
         }
       return backupNow;
     }
@@ -673,6 +682,7 @@ int main(int argc, char* argv[])
       // default-values
       conf.addString("imageName", "image");
       conf.addString("vaultConfigName", "kind/vault.conf");
+      conf.addString("vaultConfigName", "vault.conf");
       conf.addString("expireFailedImage", "3 days");
       conf.addString("expireRule", "* * * * 1 month");
       conf.addString("ping", "ping -c 1 -W 5 %host");
@@ -684,6 +694,7 @@ int main(int argc, char* argv[])
                      "find %path -type f -iname '*nobackup' -printf '%P\\\\n'");
       conf.addString("logSize", "");
       conf.addString("lastLink", "symLink");
+      conf.addString("appendSetToImageName", "false");
 
       if (listConfig)
         {
@@ -698,22 +709,22 @@ int main(int argc, char* argv[])
         throw Exception("read master configuration", "no banks defined");
 
       vector<string> vaults;
-      string groupname = "group_" + vault;
+      string groupname = "group_" + vault_or_group;
       if (conf.hasKey(groupname))
         {
           vaults = conf.getStrings(groupname);
-          vault.clear(); // no single vault but group
+          vault_or_group.clear(); // no single vault but group
         }
       else
-        vaults.push_back(vault);
+        vaults.push_back(vault_or_group);
 
       if (listConfig)
         {
           cout << "global config:" << endl;
           conf.print(".   ");
-          if (!vault.empty())
+          if (!vault_or_group.empty())
             {
-              readVaultConfig(vault, conf);
+              readVaultConfig(vault_or_group, conf);
               cout << "vault config:" << endl;
               conf.print(".   ");
             }
@@ -731,6 +742,16 @@ int main(int argc, char* argv[])
           exit(0);
         }
 
+      if (listVault)
+        {
+          sort(vaults.begin(), vaults.end());
+          for (string vault : vaults)
+            {
+              string vaultPath = findVault(vault);
+              cout << vaultPath << endl;
+            }
+          exit(0);
+        }
       // previous actions do not need locking
       lockFile = conf.getString("lockfile");
       createLock(lockFile);
@@ -738,6 +759,7 @@ int main(int argc, char* argv[])
       string logSizeFile = conf.getString("logSize");
       readSizes(logSizeFile);
 
+#if 0
       for (string vault : vaults)
         {
           if (doBackup)
@@ -746,6 +768,17 @@ int main(int argc, char* argv[])
           if (doExpire)
             expireVault(vault, conf, imageTime);
         }
+#endif
+      if (doBackup)
+        for (string vault : vaults)
+          {
+            if (backupVault(vault, conf, imageTime, fullImage, forcedBackupSet))
+              writeSizes(logSizeFile);
+          }
+
+      if (doExpire)
+        for (string vault : vaults)
+          expireVault(vault, conf, imageTime);
 
       if (!quiet)
         cout << DateTime::now().getString('h') << ": finished" << endl;
