@@ -429,7 +429,7 @@ bool backupVault(const string& vault,
       bool backupNow = true;
 
       if (conf.getString("path").empty()) // empty path string disables backup
-	backupNow = false;
+        backupNow = false;
 
       // existing images
       Images validImageList = findImages(vaultPath, conf, false);

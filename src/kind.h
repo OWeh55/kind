@@ -11,6 +11,6 @@ void verbosePrint(const std::string& text);
 
 void debugPrint(const std::string& text);
 
-const std::string EXCEPTION="###  EXCEPTION  ###";
+const std::string EXCEPTION = "###  EXCEPTION  ###";
 
 #endif
