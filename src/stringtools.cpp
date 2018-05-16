@@ -250,15 +250,15 @@ double getNumber(const string& l)
 {
   // read *all* digits from string l ignoring all other characters
   // "read 3,000,421 Bytes" => 3000421
-  string d;
+  string digits;
   for (unsigned int i = 0; i < l.size(); ++i)
     if (isdigit(l[i]))
-      d += l[i];
+      digits += l[i];
   // return long int value of digits
-  long int res = 0;
+  double res = 0;
   try
     {
-      res = stof(d);
+      res = stod(digits);
     }
   catch (...)
     {
