@@ -54,7 +54,7 @@ least the bank:
 ```
 - Create one or more subdirectories of the bank as "vault" for the backups
 - Create a subdirectory kind in each vault directory
-- Create a vault config files /[bank]/[vault]/kind/vault.conf, containing
+- Create a vault config file /[bank]/[vault]/kind/vault.conf, containing
 ```
     host=[client host]
 
