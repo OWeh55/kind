@@ -16,8 +16,8 @@ server and the clients. rsync may be used via ssh or as server.
 For an automated backup via ssh the server must have ssh access 
 to the clients without password (using public key authentication).
 
-If the client runs rsync as server it must be configured to allow the
-server to read the modules to backup. 
+If the client runs rsync as server it must be configured to
+allow the server to read the modules to backup. 
 
 **Windows** clients can be backed up using **DeltaCopy** as rsync server on Windows.
 
