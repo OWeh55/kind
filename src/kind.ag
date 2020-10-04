@@ -96,7 +96,7 @@ void readSizes(const string& logSizeFile)
     }
 }
 
-void writeSizes(const string &logSizeFile)
+void writeSizes(const string& logSizeFile)
 {
   if (!logSizeFile.empty())
     {
