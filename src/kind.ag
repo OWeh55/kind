@@ -301,7 +301,7 @@ void doBackup(const string& vault,
       int rc = 0;
       Strings pingResult = localExec(pingCommand, rc, debug);
       if (rc != 0)
-        throw Exception("Host not available", pingCommand);
+        throw Exception("host not reachable", pingCommand);
     }
 
   string path = conf.getString("path");
@@ -323,7 +323,7 @@ void doBackup(const string& vault,
   // create image path
   if (!dryRun)
     if (mkdir(imageFullName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
-      throw Exception("Create image", "failed to create " + imageFullName);
+      throw Exception("create image", "failed to create " + imageFullName);
 
   // error message
   // we write an generic error message to mark backup as unsuccessful
@@ -332,7 +332,7 @@ void doBackup(const string& vault,
   if (!dryRun)
     {
       ofstream error(errorfile);
-      error << "rsync not successfully completed" << endl;
+      error << "backup not successfully completed" << endl;
       error.close();
     }
 
@@ -361,9 +361,8 @@ void doBackup(const string& vault,
       rsyncCmd += userAtHost + ":" + path + " ";
       rsyncCmd += imageFullName + "/tree";
     } // shell mode
-  else
+  else // server mode
     {
-      // cout << "USING SERVERMODE" << endl;
       // we cannot use find without shell access
       // and do not read an exclude file on client side
 
@@ -402,14 +401,14 @@ void doBackup(const string& vault,
           sizes[vault] = Sizes(st, sc);
         }
       else
-        throw Exception("Backup", "Failed to execute rsync (result: " + to_string(rc) + ")");
+        throw Exception("backup", "failed to execute rsync (result: " + to_string(rc) + ")");
     }
   else
     cout << "Not executing " << rsyncCmd << endl;
 }
 
 bool backupVault(const string& vault,
-                 KindConfig conf /*Copy!*/,
+                 KindConfig conf, // Copy!
                  const DateTime& imageTime,
                  bool fullImage,
                  const string& forcedBackupSet)
@@ -478,13 +477,13 @@ bool backupVault(const string& vault,
                   // find backupSet that
                   //    - needs backup
                   //    - has longest time to keep
-                  // because of ordered list backupSetRule this is the first set, that need
+                  // because of ordered list backupSetRule this is the first set
 
                   currentSet = "";
                   for (unsigned int i = 0; i < backupSetRule.size() && currentSet.empty(); ++i)
                     {
                       string name = backupSetRule[i].name;
-                      if (nextBackup[i] <= imageTime + 5) // small offset of 5s for "jitter"
+                      if (nextBackup[i] <= imageTime + 10) // small offset (in seconds) for "jitter"
                         {
                           backupNow = true;
                           currentSet = name;
@@ -500,7 +499,7 @@ bool backupVault(const string& vault,
                       setRuleIdx = setIdx[forcedBackupSet];
                     }
                   else
-                    throw Exception("force backup of set " + forcedBackupSet, " set not exists");
+                    throw Exception("force backup of set " + forcedBackupSet, "set not exists");
                 }
               if (conf.getBool("appendSetToImageName"))
                 imageFullName += "-" + currentSet;
@@ -625,7 +624,7 @@ void expireVault(const string& vault, KindConfig conf, DateTime now)
             {
               time_t expPeriod = stot(conf.getString("expireFailedImage"));
               if (expPeriod < 0)
-                throw Exception("expireFailedImage", "Time period must be positive");
+                throw Exception("expireFailedImage", "time period must be positive");
               expireTime = imageTime + expPeriod;
               expireRule = "invalid image: " + conf.getString("expireFailedImage");
               debugPrint("- invalid image");
@@ -759,16 +758,6 @@ int main(int argc, char* argv[])
       string logSizeFile = conf.getString("logSize");
       readSizes(logSizeFile);
 
-#if 0
-      for (string vault : vaults)
-        {
-          if (doBackup)
-            if (backupVault(vault, conf, imageTime, fullImage, forcedBackupSet))
-              writeSizes(logSizeFile);
-          if (doExpire)
-            expireVault(vault, conf, imageTime);
-        }
-#endif
       if (doBackup)
         for (string vault : vaults)
           {
