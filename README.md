@@ -71,6 +71,6 @@ least the bank:
     kind [vault]
 ```
 
-See the [wiki][https://github.com/OWeh55/kind/wiki] for more information.
+See the [wiki](wiki) for more information.
 
 Use **man kind** and **man kind.conf** for more help
