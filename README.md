@@ -71,4 +71,6 @@ least the bank:
     kind [vault]
 ```
 
+See the wiki for more information.
+
 Use **man kind** and **man kind.conf** for more help
