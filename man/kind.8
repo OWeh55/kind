@@ -61,28 +61,23 @@ Tree is the copy of the client tree.
 .P
 The client directory tree is compared with an existing image
 to create a new image.
-Unchanged files are shared between images.
-For changed files only those parts that actually change are 
-transfered over the network.
-Unchanged portions of files are copied from the reference image.
+Unchanged files are shared between images using hardlinks.
 .P
 The resulting images contain complete copies of the original trees
 preserving ownership and file permissions.
-In this way even though the backups are made incrementally,
-each image can be used independently for restores
-or to make removable-media off-site copies or archives.
 .P
 The removal of an image will have no effect on other images.
 .P
 After backup all images of the vault are checked and expired images 
-are removed
+are removed.
 
 .SH OPTIONS
 .P
 Each option may be unambiguously abbreviated.
 .TP
-.Di masterconfig  config-file
-Load general options from the specified file. Default is /etc/d2/master.conf.
+.Di masterconfig config-file
+Load general options from the specified file. Default is /etc/kind.master
+or /etc/kind/master.conf
 Configuration values from this file may be overwritten by the vault config 
 files. The master config file must contain at least the specification of 
 the banks
@@ -122,10 +117,10 @@ Print version string and exit.
 kind returns 0 in case of no error.
 .SH FILES
 .TP
-.IB /etc/d2/ master.conf
+.IB /etc/kind/ master.conf
 Default master configuration file.
 .TP
-.IB bank/vault/d2/ vault.conf
+.IB bank/vault/ vault.conf
 Default vault configuration file.
 .TP
 .IB bank/vault/ last
@@ -153,11 +148,11 @@ on the backup server.
 
 For an automated backup process the root user must have 
 non-interactive ssh access to the client systems.
-It is not necessary that this access be as the root user on the client.
+Access as root on the clients is not necessary.
 
 File ownership is preserved using numeric values
 so it is not necessary to have user accounts on the backup server.
-Making the vaults network accessible
+Making the vaults accessible on network
 using protocols that map UIDs based on names instead of number
 could allow access controls on files to be violated.
 

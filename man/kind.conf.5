@@ -77,6 +77,8 @@ Blank lines and lines starting with '#' are ignored.
 
 On startup kind will first load a master configuration file
 .B /etc/kind/master.conf
+or
+.B /etc/kind.master
 
 Each vault must have an own configuration file, which must specify 
 at least the host and path to backup.
@@ -124,7 +126,7 @@ starting with '/'.
 
 .TP
 .Bi exclude pattern (L)
-Specify filename patterns to exclude.
+Specify filename patterns to exclude from backup.
 
 Patterns are based on shell glob with some enhancements.
 
@@ -200,15 +202,17 @@ and find excludes.
 Specify additional options for the rsync command.
 
 This allows to use rsync features that are not directly 
-supported by kind.
+supported by kind. Be carefully to avoid conflicts with options used
+by kind. kind is not able to check this.
 
 .multiple rsyncOption
 
 .TP
 .Bi group_??? vault (L)
 Specifies groups of vaults. If kind is called with a parameter 
-as vault name like in "kind xyz", it first looks for a vaultgroup 
-of this name. For this purpose a configuration option group_xyz is
+as vault name like in "kind xyz", it first looks for a defined
+group of vault with this name.
+For this purpose a configuration option group_xyz is
 searched and the given list of vaults is then handled. All images
 created this way have the same image time.
 
@@ -221,7 +225,7 @@ This allows rules to be set in master configuration and
 rules in \*[vault] configuration files will override rules set in the
 master configuration file.
 
-Expire time is determined at time of creation. Image time is compared
+Expire time is determined at time of creation. The image time is compared
 to a pattern defined in expire rules and if the image time matches, 
 the rule is applied giving a lifetime of the image.
 
@@ -250,7 +254,7 @@ expireRule +=   10      *        *          *   1 days
 .SH BACKUP SETS
 Backup sets are another way to describe lifetime of images. It is
 possible to define a number of backup sets, e.g. as "daily", "weekly" and
-"monthly". A backup set has a value for then time between to backups  
+"monthly". A backup set has a value for the time between to backups  
 and a value for the time to keep the images.
 
 This is given as
@@ -266,10 +270,10 @@ setRule += monthly: 1 month: 1 year
 
 .SH FILES
 .TP
-.B /etc/kind/master.conf
-default master configuration file.
+.B /etc/kind/master.conf /etc/kind.master
+default master configuration files.
 .TP
-.B bank/vault/kind/vault.conf
+.B bank/vault/kind/vault.conf bank/vault/vault.conf
 default vault configuration file.
 .TP
 .B bank/vault/image/tree
